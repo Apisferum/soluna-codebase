@@ -1,0 +1,442 @@
+import { Suspense, lazy, useEffect } from "react";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
+import ProtectedRoute from "@/app/routes/ProtectedRoute";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
+import { InstallPrompt } from "@/components/common/InstallPrompt";
+import Lenis from "lenis";
+import PostHogPageView from "@/analytics/PageView";
+import GAPageView from "@/analytics/GAPageView";
+
+
+const Index = lazy(() => import("@/pages/home/Index"));
+const FretboardPage = lazy(() => import("@/pages/tools/FretboardPage"));
+const ChordsPage = lazy(() => import("@/pages/tools/ChordsPage"));
+const ScalesPage = lazy(() => import("@/pages/tools/ScalesPage"));
+const MetronomePage = lazy(() => import("@/pages/tools/MetronomePage"));
+const ChordAIPage = lazy(() => import("@/pages/ai/ChordAIPage"));
+const VocalSplitterPage = lazy(() => import("@/pages/ai/VocalSplitterPage"));
+const StemSeparatorPage = lazy(() => import("@/pages/ai/StemSeparatorPage"));
+const TheoryPage = lazy(() => import("@/pages/tools/TheoryPage"));
+const TunerPage = lazy(() => import("@/pages/tools/TunerPage"));
+const EarTrainingPage = lazy(() => import("@/pages/tools/EarTrainingPage"));
+const JamPage = lazy(() => import("@/pages/tools/JamPage"));
+const MidiComposerPage = lazy(() => import("@/pages/tools/MidiComposerPage"));
+const GenerationPage = lazy(() => import("@/pages/ai/GenerationPage"));
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"),
+);
+const AdminLoginPage = lazy(
+  () => import("@/pages/admin/AdminLoginPage"),
+);
+
+const AdminDashboardPage = lazy(
+  () => import("@/pages/admin/AdminDashboardPage"),
+);
+const HistoryPage = lazy(
+  () => import("@/pages/ai/HistoryPage"),
+);
+import AdminProtectedRoute from "@/app/routes/AdminProtectedRoute";
+const BlogListPage = lazy(() => import("@/pages/blog/BlogListPage"));
+const BlogPostPage = lazy(() => import("@/pages/blog/BlogPostPage"));
+const NotFound = lazy(() => import("@/pages/system/NotFound"));
+
+import SoLunaLoader from "@/components/ui/loader";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
+
+const RouteFallback = () => (
+  <SoLunaLoader fullScreen text="INITIALIZING" />
+);
+
+const queryClient = new QueryClient();
+
+const PageWrapper = ({ children }: { children: React.ReactNode }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.3, ease: "linear" }}
+  >
+    {children}
+  </motion.div>
+);
+
+const App = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.0,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => {
+      lenis.destroy();
+    };
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Analytics />
+      <SpeedInsights />
+      <TooltipProvider>
+        {/* Skip to content for accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[10000] px-3 py-2 rounded bg-white text-black shadow"
+        >
+          Skip to content
+        </a>
+
+
+        {/* PWA Install Prompt */}
+        <InstallPrompt />
+
+        {/* Premium Deep Black Foundation */}
+        <div className="fixed inset-0 z-[-1] bg-[#020202]" />
+
+        <Toaster />
+        <Sonner />
+       <ErrorBoundary>
+  <PostHogPageView />
+  <GAPageView />
+
+  <AnimatePresence mode="wait">
+    <Routes location={location} key={location.pathname}>
+              <Route
+  path="/login"
+  element={
+    <Suspense fallback={<RouteFallback />}>
+      <PageWrapper>
+        <LoginPage />
+      </PageWrapper>
+    </Suspense>
+  }
+/>
+<Route
+  path="/register"
+  element={
+    <Suspense fallback={<RouteFallback />}>
+      <PageWrapper>
+        <RegisterPage />
+      </PageWrapper>
+    </Suspense>
+  }
+/>
+
+<Route
+  path="/admin/login"
+  element={
+    <Suspense fallback={<RouteFallback />}>
+      <PageWrapper>
+        <AdminLoginPage />
+      </PageWrapper>
+    </Suspense>
+  }
+/>
+
+<Route
+  path="/admin/dashboard"
+  element={
+    <Suspense fallback={<RouteFallback />}>
+      <AdminProtectedRoute>
+        <PageWrapper>
+          <AdminDashboardPage />
+        </PageWrapper>
+      </AdminProtectedRoute>
+    </Suspense>
+  }
+/>
+
+<Route
+  path="/admin"
+  element={
+    <Navigate
+      to="/admin/dashboard"
+      replace
+    />
+  }
+/>
+
+<Route
+  path="/admin/*"
+  element={
+    <Navigate
+      to="/admin/dashboard"
+      replace
+    />
+  }
+/>
+<Route
+  path="/forgot-password"
+  element={
+    <Suspense fallback={<RouteFallback />}>
+      <PageWrapper>
+        <ForgotPasswordPage />
+      </PageWrapper>
+    </Suspense>
+  }
+/>
+              <Route
+                path="/"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <Index />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              
+              <Route
+                path="/fretboard"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <FretboardPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/fretboard/:root/:variant/:voicingIndex?"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <FretboardPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/chords"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <ChordsPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/scales"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <ScalesPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/metronome"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <MetronomePage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/chord-ai"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <ChordAIPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/vocal-splitter"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <VocalSplitterPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/stem-separator"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <StemSeparatorPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/theory"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <TheoryPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/tuner"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <TunerPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/ear-training"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <EarTrainingPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/jam"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <JamPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/midi-composer"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <MidiComposerPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+             <Route
+  path="/generation"
+  element={
+    <ProtectedRoute>
+      <Suspense fallback={<RouteFallback />}>
+        <PageWrapper>
+          <main id="main-content">
+            <GenerationPage />
+          </main>
+        </PageWrapper>
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/history"
+  element={
+    <ProtectedRoute>
+      <Suspense
+        fallback={<RouteFallback />}
+      >
+        <PageWrapper>
+          <main id="main-content">
+            <HistoryPage />
+          </main>
+        </PageWrapper>
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
+              <Route
+                path="/blog"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <BlogListPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/blog/:slug"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <BlogPostPage />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="*"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PageWrapper>
+                      <main id="main-content">
+                        <NotFound />
+                      </main>
+                    </PageWrapper>
+                  </Suspense>
+                }
+              />
+            </Routes>
+          </AnimatePresence>
+        </ErrorBoundary>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
+export default App;

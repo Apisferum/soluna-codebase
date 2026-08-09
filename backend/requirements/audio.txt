@@ -1,0 +1,35 @@
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+librosa==0.10.2
+# Pin numpy<2.0 to prevent PyTorch 2.2 incompatibility (RuntimeError: Numpy is not available)
+numpy<2.0.0
+soundfile==0.12.1
+pydantic==2.6.0
+python-multipart==0.0.9
+demucs==4.0.1
+# torch is installed in Dockerfile from cpu wheels to prevent torchaudio ABI mismatches
+scikit-learn>=1.3.0
+scipy>=1.11.0
+pytest==8.2.0
+ruff==0.4.4
+httpx==0.27.0
+
+# Note: madmom is installed separately in Dockerfile with --no-build-isolation
+# to use pre-installed Cython and avoid build environment isolation issues
+
+yt-dlp>=2025.01.26
+imageio-ffmpeg>=0.4.9
+pytubefix>=8.3.2
+
+# Core (needed by backend/chord_custom.py at runtime)
+numpy>=1.24
+librosa>=0.10
+soundfile>=0.12
+onnxruntime>=1.16
+
+# Training-only (Colab/Kaggle GPU box; NOT needed in the FastAPI backend deploy)
+torch>=2.1
+onnx>=1.15
+onnxscript>=0.1        # required by torch>=2.x's ONNX exporter tooling
+# madmom>=0.16.1       # Commented out on Windows to avoid C++ compiler/build errors (backend falls back to librosa)

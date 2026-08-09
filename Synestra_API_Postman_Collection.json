@@ -1,0 +1,773 @@
+{
+  "info": {
+    "_postman_id": "8c59bd02-c6ad-4560-84a2-94de0dfa6cbb",
+    "name": "Synestra Unified API",
+    "description": "Postman Collection for testing the Synestra Unified Backend API endpoints. Includes pre-request scripts, auto-token propagation, and file upload parameters.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "System & Health",
+      "item": [
+        {
+          "name": "Backend Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "description": "Returns details about the running service and its version."
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Endpoint for service health check. Returns status 'ok'."
+          },
+          "response": []
+        }
+      ],
+      "description": "Basic server check endpoints."
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.access_token);",
+                  "    console.log(\"Automatically saved access token to 'token' variable\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"age\": \"25\",\n  \"gender\": \"male\",\n  \"password\": \"securepassword\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registers a new user account. On success, the response JWT access_token is automatically extracted and saved in the collection variable `token`."
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.access_token);",
+                  "    console.log(\"Automatically saved access token to 'token' variable\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"securepassword\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates a user. On success, the response JWT access_token is automatically extracted and saved in the collection variable `token`."
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set(\"admin_token\", jsonData.access_token);",
+                  "    console.log(\"Automatically saved access token to 'admin_token' variable\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"adminpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "admin",
+                "login"
+              ]
+            },
+            "description": "Authenticates an administrator. On success, the response JWT access_token is automatically extracted and saved in the collection variable `admin_token`."
+          },
+          "response": []
+        },
+        {
+          "name": "Request Password Reset Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password",
+                "request"
+              ]
+            },
+            "description": "Generates a 6-digit password reset code. In development (with debug settings on), the code will print in the backend terminal logs."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"code\": \"123456\",\n  \"newPassword\": \"newsecurepassword\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password/reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password",
+                "reset"
+              ]
+            },
+            "description": "Resets user password using the code retrieved."
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints to manage user authentication, tokens, and password recovery."
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "description": "Retrieves the profile data of the currently logged-in user. Requires the Authorization header with Bearer token."
+          },
+          "response": []
+        }
+      ],
+      "description": "User profile endpoints."
+    },
+    {
+      "name": "Audio Separation",
+      "item": [
+        {
+          "name": "Separate 2-Stem (Vocals & Instrumental)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.session_id) {",
+                  "    pm.collectionVariables.set(\"separation_session_id\", jsonData.session_id);",
+                  "    console.log(\"Saved 2-stem session_id to collection variable 'separation_session_id'\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "description": "Choose the audio file to separate",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "format",
+                  "value": "wav",
+                  "description": "wav or mp3",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/audio/separate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audio",
+                "separate"
+              ]
+            },
+            "description": "Uploads and separates an audio file into vocals and instrumental. The resulting session ID is saved automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Separate 6-Stem",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.session_id) {",
+                  "    pm.collectionVariables.set(\"stems_session_id\", jsonData.session_id);",
+                  "    console.log(\"Saved 6-stem session_id to collection variable 'stems_session_id'\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "description": "Choose the audio file to separate into 6 stems",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "format",
+                  "value": "wav",
+                  "description": "wav or mp3",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/audio/separate-stems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audio",
+                "separate-stems"
+              ]
+            },
+            "description": "Separates the uploaded track into vocals, drums, bass, guitar, piano, and other. Saves the session ID automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Download 2-Stem Result",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/audio/separate/download/{{separation_session_id}}/vocals?format=wav",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audio",
+                "separate",
+                "download",
+                "{{separation_session_id}}",
+                "vocals"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "wav"
+                }
+              ]
+            },
+            "description": "Downloads either 'vocals' or 'instrumental' generated by 2-stem separation."
+          },
+          "response": []
+        },
+        {
+          "name": "Download 6-Stem Result",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/audio/separate-stems/download/{{stems_session_id}}/vocals?format=wav",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audio",
+                "separate-stems",
+                "download",
+                "{{stems_session_id}}",
+                "vocals"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "wav"
+                }
+              ]
+            },
+            "description": "Downloads one of the stems from the 6-stem separation: vocals, drums, bass, guitar, piano, other."
+          },
+          "response": []
+        }
+      ],
+      "description": "Audio stem separation endpoints powered by Spleeter/Demucs."
+    },
+    {
+      "name": "Audio Analysis (Chord AI)",
+      "item": [
+        {
+          "name": "Analyze Uploaded File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "description": "Choose the audio file to analyze for chords",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "separate_vocals",
+                  "value": "false",
+                  "description": "If true, isolates instrumental first (slower, more accurate)",
+                  "type": "text"
+                },
+                {
+                  "key": "use_madmom",
+                  "value": "true",
+                  "description": "If true, uses fast madmom engine",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/audio/analyze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audio",
+                "analyze"
+              ]
+            },
+            "description": "Detects chords in the uploaded audio file."
+          },
+          "response": []
+        },
+        {
+          "name": "Analyze YouTube Video",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "url",
+                  "value": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                  "description": "YouTube video link to download and analyze",
+                  "type": "text"
+                },
+                {
+                  "key": "separate_vocals",
+                  "value": "false",
+                  "description": "If true, isolates instrumental first (slower, more accurate)",
+                  "type": "text"
+                },
+                {
+                  "key": "use_madmom",
+                  "value": "true",
+                  "description": "If true, uses fast madmom engine",
+                  "type": "text"
+                },
+                {
+                  "key": "client_ip",
+                  "value": "127.0.0.1",
+                  "description": "Client IP for rate limiting checks",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/audio/analyze-youtube",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audio",
+                "analyze-youtube"
+              ]
+            },
+            "description": "Downloads a YouTube video as audio and performs chord detection on it."
+          },
+          "response": []
+        },
+        {
+          "name": "Get YouTube Video Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/audio/youtube/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audio",
+                "youtube",
+                "info"
+              ],
+              "query": [
+                {
+                  "key": "url",
+                  "value": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                }
+              ]
+            },
+            "description": "Extracts basic video information (title, thumbnail, duration) from a YouTube link without downloading it."
+          },
+          "response": []
+        },
+        {
+          "name": "Download Instrumental from Analysis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/audio/analyze/download/{{analysis_file_id}}/instrumental.wav",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audio",
+                "analyze",
+                "download",
+                "{{analysis_file_id}}",
+                "instrumental.wav"
+              ]
+            },
+            "description": "If separate_vocals was used during analysis, downloading the instrumental track is enabled."
+          },
+          "response": []
+        }
+      ],
+      "description": "Chord estimation and YouTube extraction capabilities."
+    },
+    {
+      "name": "Generations",
+      "item": [
+        {
+          "name": "Get User Generations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/generations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "generations"
+              ]
+            },
+            "description": "Returns the history of MIDI generation runs for the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User Generation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/generations/{{generation_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "generations",
+                "{{generation_id}}"
+              ]
+            },
+            "description": "Deletes the generation record and triggers server-side deletion of associated generated files."
+          },
+          "response": []
+        }
+      ],
+      "description": "Management of user MIDI and audio generation histories."
+    },
+    {
+      "name": "Administration",
+      "item": [
+        {
+          "name": "Get Admin Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "me"
+              ]
+            },
+            "description": "Returns admin profile. Requires authorization with `admin` role."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Generations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/generations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "generations"
+              ]
+            },
+            "description": "Retrieves the generation history logs across all users."
+          },
+          "response": []
+        }
+      ],
+      "description": "Admin dashboard and monitoring endpoints."
+    },
+    {
+      "name": "WebSockets",
+      "item": [
+        {
+          "name": "Real-time Chords WS Connection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "ws://localhost:8000/api/audio/ws/chords/{{client_id}}",
+              "protocol": "ws",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "audio",
+                "ws",
+                "chords",
+                "{{client_id}}"
+              ]
+            },
+            "description": "Open a WebSocket connection in Postman (WebSocket Request type) to stream base64-encoded PCM audio chunks and receive real-time chord detection events."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "separation_session_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stems_session_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "analysis_file_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "generation_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "client_id",
+      "value": "postman-test-client",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+﻿# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Frontend dependencies and builds
+node_modules/
+dist/
+dist-ssr/
+dev-dist/
+
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/services/**/.env
+!backend/.env.example
+!backend/services/**/.env.example
+
+# Editor and operating-system files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Python environments and caches
+.venv/
+venv/
+ENV/
+env/
+backend/venv/
+__pycache__/
+backend/**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+cache/
+*.pkl
+
+# Backend databases and runtime data
+*.db
+*.sqlite
+*.sqlite3
+
+backend/data/*
+!backend/data/.gitkeep
+
+# Generated music and temporary outputs
+backend/generated/*
+!backend/generated/.gitkeep
+
+# Backup and temporary development files
+backend_backup_/
+*_feature_files.txt
+*_before_*.tsx
+*_before_*.py
+*backup*.py
+*backup*.db
+vite.config.ts.timestamp-*.mjs

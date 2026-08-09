@@ -1,0 +1,963 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  font-size: 13px;
+}
+
+@media (min-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* Dark mode (default) */
+:root {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 98%;
+  --card: 45 20% 4%;
+  --card-foreground: 0 0% 98%;
+  --popover: 45 20% 4%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 45 70% 52%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 45 20% 10%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 42 14% 11%;
+  --muted-foreground: 42 18% 65%;
+  --accent: 45 35% 14%;
+  --accent-foreground: 45 85% 78%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 45 30% 18%;
+  --input: 45 25% 17%;
+  --ring: 45 70% 52%;
+  --radius: 1.25rem;
+  --gold: #d4af37;
+  --gold-light: #f4d06f;
+  --gold-dark: #8a6a16;
+  --gold-cream: #fff8e7;
+  --glass-border: rgba(212, 175, 55, 0.18);
+  --glass-shine: rgba(244, 208, 111, 0.05);
+  --accent-glow: hsla(45, 70%, 52%, 0.16);
+  --studio-gradient: linear-gradient(135deg, rgba(212, 175, 55, 0.10) 0%, rgba(212, 175, 55, 0.015) 100%);
+}
+
+/* Light mode */
+.light {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --primary: 45 70% 44%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 0%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 45 70% 44%;
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-shine: rgba(0, 0, 0, 0.02);
+  --accent-glow: hsla(45, 70%, 44%, 0.08);
+  --studio-gradient: linear-gradient(135deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.01) 100%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "ss02" 1;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    @apply text-5xl md:text-7xl;
+    font-weight: 300;
+    letter-spacing: -0.04em;
+  }
+
+  h2 {
+    @apply text-3xl md:text-5xl;
+    font-weight: 300;
+    letter-spacing: -0.03em;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl;
+    font-weight: 500;
+  }
+
+  p {
+    @apply text-base leading-relaxed;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary/40 ring-offset-2 ring-offset-background;
+    transition: all 0.2s ease;
+  }
+
+  .light *:focus-visible {
+    @apply ring-black/20 ring-offset-white;
+  }
+
+  ::selection {
+    background-color: rgba(212, 175, 55, 0.28);
+    color: #fff8e7;
+  }
+
+  .light ::selection {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: black;
+  }
+}
+
+/* Glass Card */
+.glass-card {
+  background-color: rgba(8, 7, 4, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.14);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.light .glass-card {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.28);
+  border: 4px solid transparent;
+  background-clip: content-box;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.48);
+  border: 4px solid transparent;
+  background-clip: content-box;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Spotlight Card */
+.spotlight-card {
+  @apply relative overflow-hidden;
+}
+
+.spotlight-glow {
+  pointer-events: none;
+  position: absolute;
+  background: radial-gradient(600px circle at var(--x) var(--y),
+      rgba(212, 175, 55, 0.10),
+      transparent 40%);
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.spotlight-card:hover .spotlight-glow {
+  opacity: 1;
+}
+
+.light .spotlight-glow {
+  background: radial-gradient(600px circle at var(--x) var(--y),
+      rgba(0, 0, 0, 0.03),
+      transparent 40%);
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes loading-bar {
+  0% {
+    width: 0%;
+  }
+  50% {
+    width: 70%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.5s ease-in-out infinite;
+}
+
+@keyframes gemini-gradient-rotate {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gemini-glow-border {
+  background: linear-gradient(
+    90deg,
+    #8a6a16,
+    #d4af37,
+    #f4d06f,
+    #d4af37,
+    #8a6a16
+  );
+  background-size: 200% 200%;
+  animation: gemini-gradient-rotate 4s linear infinite;
+}
+
+.gemini-glow-shadow {
+  background: linear-gradient(
+    90deg,
+    #8a6a16,
+    #d4af37,
+    #f4d06f,
+    #d4af37,
+    #8a6a16
+  );
+  background-size: 200% 200%;
+  animation: gemini-gradient-rotate 4s linear infinite;
+  filter: blur(20px);
+}
+.composer-glow-border {
+  background: linear-gradient(
+    90deg,
+    #b8860b 0%,
+    #d4af37 25%,
+    #ffd700 50%,
+    #d4af37 75%,
+    #b8860b 100%
+  );
+}
+
+.composer-glow-shadow {
+  background: radial-gradient(
+    circle at 20% 50%,
+    rgba(212, 175, 55, 0.8) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 80% 50%,
+    rgba(255, 215, 0, 0.7) 0%,
+    transparent 50%
+  );
+  filter: blur(32px);
+}
+
+.composer-textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  ring: none !important;
+}
+
+textarea.composer-textarea {
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0px !important;
+  box-shadow: none !important;
+  color: #faf0d9 !important; /* Cream text */
+  caret-color: #ffd700 !important; /* Gold cursor */
+}
+
+textarea.composer-textarea::placeholder {
+  color: rgba(212, 175, 55, 0.4) !important; /* Soft gold placeholder */
+}
+
+.light textarea.composer-textarea {
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0px !important;
+  box-shadow: none !important;
+  color: #4a3c1c !important; /* Warm dark cream/brown text */
+  caret-color: #aa7c11 !important; /* Dark gold cursor */
+}
+
+.light textarea.composer-textarea::placeholder {
+  color: rgba(170, 124, 17, 0.4) !important;
+}
+
+textarea.composer-textarea::selection,
+.light textarea.composer-textarea::selection {
+  background-color: rgba(212, 175, 55, 0.3) !important;
+  color: inherit !important;
+}
+
+/* ============================================ */
+/* VIDEO PROMPT BAR - always dark glass, theme-proof */
+/* ============================================ */
+
+#video-prompt-bar {
+  background-color: rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(12px);
+}
+
+#video-prompt-input {
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0px !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+#video-prompt-input::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+#video-prompt-button {
+  background: linear-gradient(135deg, #a87912, #d4af37, #f1d36a) !important;
+}
+
+#video-prompt-button:hover {
+  filter: brightness(1.1);
+}
+
+#video-prompt-button svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+#video-prompt-button-text {
+  color: #000000 !important;
+}
+
+
+
+/* ============================================ */
+/* LIGHT MODE FIXES */
+/* ============================================ */
+
+/* Fix background colors */
+.light .bg-\[\#050505\],
+.light .bg-\[\#030303\],
+.light .bg-\[\#0a0a0a\],
+.light .bg-\[\#080808\] {
+  background-color: #ffffff !important;
+}
+
+/* Fix text colors */
+.light .text-white,
+.light .text-white\/80,
+.light .text-white\/70,
+.light .text-white\/60 {
+  color: #000000 !important;
+}
+
+.light .text-muted-foreground,
+.light .text-white\/40,
+.light .text-white\/30 {
+  color: #666666 !important;
+}
+
+/* Fix borders */
+.light .border-white\/10,
+.light .border-white\/20,
+.light .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Fix icon backgrounds */
+.light .bg-white\/5,
+.light .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* CRITICAL: Fix buttons that become invisible in light mode */
+.light button.bg-white,
+.light button[class*="bg-white"]:not([class*="bg-white/"]),
+.light .bg-white.text-black,
+.light a.bg-white {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.light button.bg-white:hover,
+.light a.bg-white:hover {
+  background-color: #333333 !important;
+}
+
+/* Fix all button text */
+.light button,
+.light .button,
+.light [role="button"] {
+  color: #000000 !important;
+}
+
+.light button span,
+.light button .text-white {
+  color: inherit !important;
+}
+
+/* Fix outline buttons */
+.light button.bg-transparent,
+.light button[class*="outline"] {
+  color: #000000 !important;
+  border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Fix Master Theory button */
+.light .border-white\/10.bg-white\/\[0\.02\] {
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: #000000 !important;
+}
+
+/* Fix main CTA buttons */
+.light .h-16.px-10.rounded-2xl {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Fix links */
+.light a:not([class*="bg-"]) {
+  color: #000000 !important;
+}
+
+/* Fix input fields */
+.light input,
+.light textarea {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: #000000 !important;
+}
+
+/* Fix select dropdowns and portals in light mode */
+.light [data-radix-select-viewport],
+.light [role="listbox"],
+.light [role="presentation"],
+.light [data-radix-popper-content-wrapper] [class*="bg-popover"],
+.light [data-radix-popper-content-wrapper] [class*="bg-card"],
+.light .bg-popover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.light [role="option"],
+.light [data-radix-collection-item],
+.light [class*="text-popover-foreground"] {
+  color: #000000 !important;
+}
+
+.light [role="option"]:focus,
+.light [role="option"][data-highlighted],
+.light [data-radix-collection-item]:focus,
+.light [data-radix-collection-item][data-highlighted] {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: #000000 !important;
+}
+
+/* Fix SVG icons */
+.light svg {
+  color: #000000 !important;
+}
+
+/* Fix radial gradient background */
+.light .bg-\[radial-gradient\(circle_at_center\,
+transparent_0\%\2c rgba\(0\2c 0\2c 0\2c 0\.4\)_100\%\)\] {
+  background: transparent !important;
+}
+
+/* Fix footer */
+.light footer {
+  background-color: #f8f8f8 !important;
+  border-top-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Fix cards */
+.light .rounded-xl,
+.light .rounded-2xl,
+.light .rounded-lg {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Ensure all text is visible */
+.light p,
+.light h1,
+.light h2,
+.light h3,
+.light h4,
+.light h5,
+.light h6,
+.light span:not([class*="text-primary"]),
+.light div:not([class*="bg-"]):not([class*="border"]) {
+  color: #000000 !important;
+}
+
+/* Keep gradient text effects */
+.light .text-gradient {
+  background-image: linear-gradient(135deg, #000 0%, rgba(0, 0, 0, 0.7) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Hide scrollbars but keep scrolling functionality */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar,
+[data-radix-select-viewport]::-webkit-scrollbar,
+.composer-textarea::-webkit-scrollbar {
+  display: none !important;
+}
+
+html,
+body,
+.no-scrollbar,
+[data-radix-select-viewport],
+.composer-textarea {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================ */
+/* DARK THEME RESTORATION IN LIGHT MODE */
+/* ============================================ */
+
+/* Ensure the .dark class resets all design system variables back to dark mode values */
+.dark,
+.light .dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 98%;
+  --card: 45 20% 4%;
+  --card-foreground: 0 0% 98%;
+  --popover: 45 20% 4%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 45 70% 52%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 45 20% 10%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 42 14% 11%;
+  --muted-foreground: 42 18% 65%;
+  --accent: 45 35% 14%;
+  --accent-foreground: 45 85% 78%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 45 30% 18%;
+  --input: 45 25% 17%;
+  --ring: 45 70% 52%;
+  --glass-border: rgba(212, 175, 55, 0.18);
+  --glass-shine: rgba(244, 208, 111, 0.05);
+  --accent-glow: hsla(45, 70%, 52%, 0.16);
+  --studio-gradient: linear-gradient(135deg, rgba(212, 175, 55, 0.10) 0%, rgba(212, 175, 55, 0.015) 100%);
+}
+
+/* Override light mode forced styling (!important overrides) when inside a .dark container */
+.light .dark .text-white {
+  color: #ffffff !important;
+}
+.light .dark .text-white\/80 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+.light .dark .text-white\/75 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+.light .dark .text-white\/70 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+.light .dark .text-white\/60 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.light .dark .text-white\/40 {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+.light .dark .text-white\/30 {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+.light .dark .text-muted-foreground {
+  color: #a1a1aa !important;
+}
+
+/* Restore title and headings text visibility */
+.light .dark h1,
+.light .dark h2,
+.light .dark h3,
+.light .dark h4,
+.light .dark h5,
+.light .dark h6 {
+  color: #ffffff !important;
+}
+
+/* Keep gradient text effects like bg-clip-text working */
+.light .dark .bg-clip-text {
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+/* Restore paragraph text default color */
+.light .dark p {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Restore SVG icon color */
+.light .dark svg {
+  color: currentColor !important;
+}
+
+/* Restore buttons inside dark components */
+.light .dark button,
+/* Fix input fields */
+.light input,
+.light textarea {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: #000000 !important;
+}
+
+/* Fix select dropdowns and portals in light mode */
+.light [data-radix-select-viewport],
+.light [role="listbox"],
+.light [role="presentation"],
+.light [data-radix-popper-content-wrapper] [class*="bg-popover"],
+.light [data-radix-popper-content-wrapper] [class*="bg-card"],
+.light .bg-popover {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.light [role="option"],
+.light [data-radix-collection-item],
+.light [class*="text-popover-foreground"] {
+  color: #000000 !important;
+}
+
+.light [role="option"]:focus,
+.light [role="option"][data-highlighted],
+.light [data-radix-collection-item]:focus,
+.light [data-radix-collection-item][data-highlighted] {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: #000000 !important;
+}
+
+/* Fix SVG icons */
+.light svg {
+  color: #000000 !important;
+}
+
+/* Fix radial gradient background */
+.light .bg-\[radial-gradient\(circle_at_center\,
+transparent_0\%\2c rgba\(0\2c 0\2c 0\2c 0\.4\)_100\%\)\] {
+  background: transparent !important;
+}
+
+/* Fix footer */
+.light footer {
+  background-color: #f8f8f8 !important;
+  border-top-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Fix cards */
+.light .rounded-xl,
+.light .rounded-2xl,
+.light .rounded-lg {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Ensure all text is visible */
+.light p,
+.light h1,
+.light h2,
+.light h3,
+.light h4,
+.light h5,
+.light h6,
+.light span:not([class*="text-primary"]),
+.light div:not([class*="bg-"]):not([class*="border"]) {
+  color: #000000 !important;
+}
+
+/* Keep gradient text effects */
+.light .text-gradient {
+  background-image: linear-gradient(135deg, #000 0%, rgba(0, 0, 0, 0.7) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Hide scrollbars but keep scrolling functionality */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar,
+[data-radix-select-viewport]::-webkit-scrollbar,
+.composer-textarea::-webkit-scrollbar {
+  display: none !important;
+}
+
+html,
+body,
+.no-scrollbar,
+[data-radix-select-viewport],
+.composer-textarea {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================ */
+/* DARK THEME RESTORATION IN LIGHT MODE */
+/* ============================================ */
+
+/* Ensure the .dark class resets all design system variables back to dark mode values */
+.dark,
+.light .dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 98%;
+  --card: 45 20% 4%;
+  --card-foreground: 0 0% 98%;
+  --popover: 45 20% 4%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 45 70% 52%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 45 20% 10%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 42 14% 11%;
+  --muted-foreground: 42 18% 65%;
+  --accent: 45 35% 14%;
+  --accent-foreground: 45 85% 78%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 45 30% 18%;
+  --input: 45 25% 17%;
+  --ring: 45 70% 52%;
+  --glass-border: rgba(212, 175, 55, 0.18);
+  --glass-shine: rgba(244, 208, 111, 0.05);
+  --accent-glow: hsla(45, 70%, 52%, 0.16);
+  --studio-gradient: linear-gradient(135deg, rgba(212, 175, 55, 0.10) 0%, rgba(212, 175, 55, 0.015) 100%);
+}
+
+/* Override light mode forced styling (!important overrides) when inside a .dark container */
+.light .dark .text-white {
+  color: #ffffff !important;
+}
+.light .dark .text-white\/80 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+.light .dark .text-white\/75 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+.light .dark .text-white\/70 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+.light .dark .text-white\/60 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.light .dark .text-white\/40 {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+.light .dark .text-white\/30 {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+.light .dark .text-muted-foreground {
+  color: #a1a1aa !important;
+}
+
+/* Restore title and headings text visibility */
+.light .dark h1,
+.light .dark h2,
+.light .dark h3,
+.light .dark h4,
+.light .dark h5,
+.light .dark h6 {
+  color: #ffffff !important;
+}
+
+/* Keep gradient text effects like bg-clip-text working */
+.light .dark .bg-clip-text {
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+/* Restore paragraph text default color */
+.light .dark p {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Restore SVG icon color */
+.light .dark svg {
+  color: currentColor !important;
+}
+
+/* Restore buttons inside dark components */
+.light .dark button,
+.light .dark .button,
+.light .dark [role="button"] {
+  color: #ffffff !important;
+}
+
+.light .dark button.bg-white,
+.light .dark a.bg-white {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Restore borders and backgrounds */
+.light .dark .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.light .dark .border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.light .dark .border-white\/5 {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+.light .dark .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+.light .dark .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Restore composer textarea styles specifically */
+.light .dark textarea.composer-textarea {
+  color: #faf0d9 !important;
+  caret-color: #ffd700 !important;
+}
+.light .dark textarea.composer-textarea::placeholder {
+  color: rgba(212, 175, 55, 0.4) !important;
+}
+
+/* Floating Music Notes and Elements animations */
+@keyframes float-music-y {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-80px) rotate(12deg);
+  }
+}
+
+@keyframes float-music-x {
+  0%, 100% {
+    transform: translateX(0px) translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateX(25px) translateY(-35px) rotate(-12deg);
+  }
+}
+
+@keyframes float-music-diagonal {
+  0%, 100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  50% {
+    transform: translate(-25px, -75px) rotate(15deg);
+  }
+}
+
+.animate-float-y {
+  animation: float-music-y 7s ease-in-out infinite;
+}
+
+.animate-float-x {
+  animation: float-music-x 9s ease-in-out infinite;
+}
+
+.animate-float-diagonal {
+  animation: float-music-diagonal 11s ease-in-out infinite;
+}
+
+.golden-music-note {
+  color: #ffd700 !important; /* Gold */
+  opacity: 0.38;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.55));
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+.golden-music-note:hover {
+  opacity: 0.85;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.95));
+}

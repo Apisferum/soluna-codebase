@@ -1,0 +1,10 @@
+-r requirements/audio.txt
+-r requirements/auth.txt
+fastapi
+uvicorn[standard]
+pydantic-settings
+python-dotenv
+httpx
+pytest
+celery
+redis

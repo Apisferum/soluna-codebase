@@ -1,0 +1,1093 @@
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+import {
+  ArrowLeft,
+  Download,
+  FileAudio,
+  History,
+  Loader2,
+  Music2,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Trash2,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePageMetadata } from "@/hooks/usePageMetadata";
+import { AUTH_API_BASE_URL } from "@/services/api/authApi";
+import { PLANNER_API_BASE_URL } from "@/services/api/plannerApi";
+
+interface GenerationSection {
+  name?: string;
+  bars?: number;
+  description?: string;
+}
+
+interface StructuredPlan {
+  sections?: GenerationSection[];
+}
+
+interface GenerationRecord {
+  id: number;
+  title: string;
+  prompt: string;
+  fullPrompt?: string;
+  mood: string;
+  genre: string;
+  tempo: string;
+  instrument: string;
+  structure: string;
+  status: string;
+  message: string;
+  structuredPlan?: StructuredPlan;
+  midiNotes?: StructuredPlan;
+  midiFilePath?: string | null;
+  audioFilePath?: string | null;
+  createdAt?: number | string | null;
+}
+
+interface GenerationsResponse {
+  generations: GenerationRecord[];
+}
+
+type HistoryFilter =
+  | "all"
+  | "completed"
+  | "failed"
+  | "pending";
+
+function buildFileUrl(filePath: string): string {
+  if (/^https?:\/\//i.test(filePath)) {
+    return filePath;
+  }
+
+  const cleanBase =
+    PLANNER_API_BASE_URL.replace(/\/+$/, "");
+  const cleanPath =
+    filePath.replace(/^\/+/, "");
+
+  return `${cleanBase}/${cleanPath}`;
+}
+
+function formatDate(
+  value: number | string | null | undefined,
+): string {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return "Date unavailable";
+  }
+
+  const date =
+    typeof value === "number"
+      ? new Date(
+          value < 10_000_000_000
+            ? value * 1000
+            : value,
+        )
+      : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date unavailable";
+  }
+
+  return date.toLocaleString();
+}
+
+function getTimestamp(
+  value: number | string | null | undefined,
+): number {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return 0;
+  }
+
+  if (typeof value === "number") {
+    return value < 10_000_000_000
+      ? value * 1000
+      : value;
+  }
+
+  const timestamp =
+    new Date(value).getTime();
+
+  return Number.isNaN(timestamp)
+    ? 0
+    : timestamp;
+}
+
+function getStatusClasses(status: string): string {
+  switch (status.toLowerCase()) {
+    case "completed":
+      return (
+        "border-emerald-400/20 " +
+        "bg-emerald-400/10 " +
+        "text-emerald-300"
+      );
+
+    case "failed":
+      return (
+        "border-red-400/20 " +
+        "bg-red-400/10 " +
+        "text-red-300"
+      );
+
+    case "pending":
+      return (
+        "border-amber-400/20 " +
+        "bg-amber-400/10 " +
+        "text-amber-300"
+      );
+
+    default:
+      return (
+        "border-[#D4AF37]/20 " +
+        "bg-white/5 " +
+        "text-white/70"
+      );
+  }
+}
+
+export default function HistoryPage() {
+  const navigate = useNavigate();
+
+  const {
+    user,
+    accessToken,
+    logout,
+  } = useAuth();
+
+  usePageMetadata({
+    title: "My Generations | SoLuna",
+    description:
+      "Review and download your generated SoLuna music compositions.",
+    keywords:
+      "music generation history, generated midi, generated audio",
+    canonicalUrl:
+      "https://SoLuna.studio/history",
+    ogImage:
+      "https://SoLuna.studio/logo2.png",
+    ogType: "website",
+  });
+
+  const [
+    generations,
+    setGenerations,
+  ] = useState<GenerationRecord[]>([]);
+
+  const [
+    selectedFilter,
+    setSelectedFilter,
+  ] = useState<HistoryFilter>("all");
+
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
+
+  const [
+    downloadingFile,
+    setDownloadingFile,
+  ] = useState("");
+
+  const [
+    deletingGenerationId,
+    setDeletingGenerationId,
+  ] = useState<number | null>(null);
+
+  const [
+    searchQuery,
+    setSearchQuery,
+  ] = useState("");
+
+  const [
+    sortOrder,
+    setSortOrder,
+  ] = useState<"newest" | "oldest">(
+    "newest",
+  );
+
+  const handleSessionExpired =
+    useCallback(() => {
+      logout();
+
+      navigate("/login", {
+        replace: true,
+        state: {
+          from: "/history",
+        },
+      });
+    }, [
+      logout,
+      navigate,
+    ]);
+
+  const loadGenerations =
+    useCallback(async () => {
+      if (!accessToken) {
+        handleSessionExpired();
+        return;
+      }
+
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        const response = await fetch(
+          `${AUTH_API_BASE_URL}/generations`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${accessToken}`,
+            },
+          },
+        );
+
+        let result: unknown = {};
+
+        try {
+          result = await response.json();
+        } catch {
+          result = {};
+        }
+
+        if (
+          response.status === 401 ||
+          response.status === 403
+        ) {
+          handleSessionExpired();
+          return;
+        }
+
+        if (!response.ok) {
+          const errorResult =
+            result as {
+              detail?: string;
+              message?: string;
+            };
+
+          throw new Error(
+            errorResult.detail ||
+              errorResult.message ||
+              `History request failed (${response.status}).`,
+          );
+        }
+
+        const historyResult =
+          result as GenerationsResponse;
+
+        setGenerations(
+          Array.isArray(
+            historyResult.generations,
+          )
+            ? historyResult.generations
+            : [],
+        );
+      } catch (error) {
+        console.error(
+          "History loading error:",
+          error,
+        );
+
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Could not load generation history.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }, [
+      accessToken,
+      handleSessionExpired,
+    ]);
+
+  useEffect(() => {
+    void loadGenerations();
+  }, [loadGenerations]);
+
+  const filteredGenerations =
+    useMemo(() => {
+      const normalizedSearch =
+        searchQuery
+          .trim()
+          .toLowerCase();
+
+      const visibleGenerations =
+        generations.filter(
+          (generation) => {
+            const matchesStatus =
+              selectedFilter === "all" ||
+              generation.status
+                .toLowerCase() ===
+                selectedFilter;
+
+            if (!matchesStatus) {
+              return false;
+            }
+
+            if (!normalizedSearch) {
+              return true;
+            }
+
+            const searchableText = [
+              generation.title,
+              generation.prompt,
+              generation.fullPrompt,
+              generation.mood,
+              generation.genre,
+              generation.tempo,
+              generation.instrument,
+              generation.structure,
+              generation.status,
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+
+            return searchableText.includes(
+              normalizedSearch,
+            );
+          },
+        );
+
+      return [
+        ...visibleGenerations,
+      ].sort((first, second) => {
+        const firstDate =
+          getTimestamp(
+            first.createdAt,
+          );
+
+        const secondDate =
+          getTimestamp(
+            second.createdAt,
+          );
+
+        return sortOrder === "newest"
+          ? secondDate - firstDate
+          : firstDate - secondDate;
+      });
+    }, [
+      generations,
+      searchQuery,
+      selectedFilter,
+      sortOrder,
+    ]);
+
+  const completedCount =
+    useMemo(
+      () =>
+        generations.filter(
+          (generation) =>
+            generation.status
+              .toLowerCase() ===
+            "completed",
+        ).length,
+      [generations],
+    );
+
+  const failedCount =
+    useMemo(
+      () =>
+        generations.filter(
+          (generation) =>
+            generation.status
+              .toLowerCase() ===
+            "failed",
+        ).length,
+      [generations],
+    );
+
+  const pendingCount =
+    useMemo(
+      () =>
+        generations.filter(
+          (generation) =>
+            generation.status
+              .toLowerCase() ===
+            "pending",
+        ).length,
+      [generations],
+    );
+
+  const handleDownload =
+    async (
+      filePath:
+        | string
+        | null
+        | undefined,
+      filename: string,
+      downloadKey: string,
+    ) => {
+      if (!filePath) {
+        return;
+      }
+
+      setDownloadingFile(downloadKey);
+      setErrorMessage("");
+
+      try {
+        const fileUrl =
+          buildFileUrl(filePath);
+
+        const headers:
+          Record<string, string> = {};
+
+        if (
+          fileUrl.startsWith(
+            AUTH_API_BASE_URL,
+          ) &&
+          accessToken
+        ) {
+          headers.Authorization =
+            `Bearer ${accessToken}`;
+        }
+
+        const response = await fetch(
+          fileUrl,
+          {
+            headers,
+          },
+        );
+
+        if (
+          response.status === 401 ||
+          response.status === 403
+        ) {
+          handleSessionExpired();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `Download failed (${response.status}).`,
+          );
+        }
+
+        const blob =
+          await response.blob();
+
+        const temporaryUrl =
+          URL.createObjectURL(blob);
+
+        const link =
+          document.createElement("a");
+
+        link.href = temporaryUrl;
+        link.download = filename;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        URL.revokeObjectURL(
+          temporaryUrl,
+        );
+      } catch (error) {
+        console.error(
+          "History download error:",
+          error,
+        );
+
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Could not download the file.",
+        );
+      } finally {
+        setDownloadingFile("");
+      }
+    };
+
+  const handleRegenerateGeneration = (
+    generation: GenerationRecord,
+  ) => {
+    const sourcePrompt = (
+      generation.fullPrompt ||
+      generation.prompt ||
+      ""
+    ).trim();
+
+    if (!sourcePrompt) {
+      setErrorMessage(
+        "This generation does not contain a reusable prompt.",
+      );
+
+      return;
+    }
+
+    navigate(
+      `/generation?prompt=${encodeURIComponent(
+        sourcePrompt,
+      )}`,
+    );
+  };
+
+  const handleDeleteGeneration =
+    async (
+      generation: GenerationRecord,
+    ) => {
+      if (!accessToken) {
+        handleSessionExpired();
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          `Delete generation #${generation.id}? ` +
+            "This removes the record from your history.",
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setDeletingGenerationId(
+        generation.id,
+      );
+
+      setErrorMessage("");
+
+      try {
+        const response = await fetch(
+          `${AUTH_API_BASE_URL}/generations/${generation.id}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization:
+                `Bearer ${accessToken}`,
+            },
+          },
+        );
+
+        let result: unknown = {};
+
+        try {
+          result =
+            await response.json();
+        } catch {
+          result = {};
+        }
+
+        if (
+          response.status === 401 ||
+          response.status === 403
+        ) {
+          handleSessionExpired();
+          return;
+        }
+
+        if (!response.ok) {
+          const errorResult =
+            result as {
+              detail?: string;
+              message?: string;
+            };
+
+          throw new Error(
+            errorResult.detail ||
+              errorResult.message ||
+              `Delete failed (${response.status}).`,
+          );
+        }
+
+        setGenerations(
+          (currentGenerations) =>
+            currentGenerations.filter(
+              (currentGeneration) =>
+                currentGeneration.id !==
+                generation.id,
+            ),
+        );
+      } catch (error) {
+        console.error(
+          "Generation delete error:",
+          error,
+        );
+
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Could not delete the generation.",
+        );
+      } finally {
+        setDeletingGenerationId(null);
+      }
+    };
+
+  const handleLogout = () => {
+    logout();
+
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+  const filters: {
+    value: HistoryFilter;
+    label: string;
+  }[] = [
+    {
+      value: "all",
+      label:
+        `All (${generations.length})`,
+    },
+    {
+      value: "completed",
+      label:
+        `Completed (${completedCount})`,
+    },
+    {
+      value: "failed",
+      label:
+        `Failed (${failedCount})`,
+    },
+    {
+      value: "pending",
+      label:
+        `Pending (${pendingCount})`,
+    },
+  ];
+
+  return (
+    <div className="dark min-h-screen bg-[#030303] text-white">
+      <main className="container mx-auto max-w-6xl px-4 py-10 md:px-6">
+        <div className="mb-10 flex flex-col gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to SoLuna
+            </Link>
+
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  void loadGenerations()
+                }
+                disabled={isLoading}
+                className="border-[#D4AF37]/20 bg-white/[0.03] text-white hover:bg-white/10"
+              >
+                <RefreshCw
+                  className={
+                    `mr-2 h-4 w-4 ${
+                      isLoading
+                        ? "animate-spin"
+                        : ""
+                    }`
+                  }
+                />
+                Refresh
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleLogout}
+                className="border-[#D4AF37]/20 bg-white/[0.03] text-white hover:bg-white/10"
+              >
+                Log out
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/20 bg-white/[0.03] px-3 py-1 text-xs uppercase tracking-[0.18em] text-white/60">
+              <History className="h-4 w-4" />
+              Generation archive
+            </div>
+
+            <h1 className="text-4xl font-light tracking-tight md:text-6xl">
+              My Generations
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-white/55">
+              Signed in as{" "}
+              <span className="text-white">
+                {user?.name ||
+                  user?.full_name ||
+                  user?.fullname ||
+                  user?.email}
+              </span>
+              . Review your saved prompts,
+              composition plans, MIDI files,
+              and rendered audio.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {filters.map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                onClick={() =>
+                  setSelectedFilter(
+                    filter.value,
+                  )
+                }
+                className={
+                  selectedFilter ===
+                  filter.value
+                    ? "rounded-full bg-gradient-to-r from-[#A87912] via-[#D4AF37] to-[#F1D36A] px-4 py-2 text-sm font-medium text-black shadow-md shadow-[#D4AF37]/10"
+                    : "rounded-full border border-[#D4AF37]/20 bg-white/[0.03] px-4 py-2 text-sm text-white/60 transition hover:bg-white/10 hover:text-white"
+                }
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) =>
+                  setSearchQuery(
+                    event.target.value,
+                  )
+                }
+                placeholder="Search prompts, genres, moods..."
+                className="h-11 w-full rounded-xl border border-[#D4AF37]/20 bg-white/[0.03] pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#D4AF37]/60 focus:bg-white/[0.05]"
+              />
+            </div>
+
+            <select
+              value={sortOrder}
+              onChange={(event) =>
+                setSortOrder(
+                  event.target.value as
+                    | "newest"
+                    | "oldest",
+                )
+              }
+              className="h-11 rounded-xl border border-[#D4AF37]/20 bg-[#0a0a0a] px-4 text-sm text-white outline-none focus:border-[#D4AF37]/60"
+              aria-label="Sort generation history"
+            >
+              <option value="newest">
+                Newest first
+              </option>
+
+              <option value="oldest">
+                Oldest first
+              </option>
+            </select>
+          </div>
+        </div>
+
+        {errorMessage && (
+          <div
+            role="alert"
+            className="mb-6 rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-200"
+          >
+            {errorMessage}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-3xl border border-[#D4AF37]/15 bg-white/[0.02]">
+            <Loader2 className="h-9 w-9 animate-spin text-[#D4AF37]" />
+
+            <p className="text-sm text-white/50">
+              Loading your generations...
+            </p>
+          </div>
+        ) : filteredGenerations.length ===
+          0 ? (
+          <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-3xl border border-[#D4AF37]/15 bg-white/[0.02] px-6 text-center">
+            <Music2 className="h-12 w-12 text-[#D4AF37]/40" />
+
+            <h2 className="text-xl font-medium">
+              No generations found
+            </h2>
+
+            <p className="max-w-md text-sm text-white/50">
+              There are no records matching
+              the selected filter.
+            </p>
+
+            <Link to="/">
+              <Button className="mt-2">
+                Create new music
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-6">
+            {filteredGenerations.map(
+              (generation) => {
+                const sections =
+                  generation
+                    .structuredPlan
+                    ?.sections || [];
+
+                const status =
+                  generation.status ||
+                  "unknown";
+
+                return (
+                  <article
+                    key={generation.id}
+                    className="overflow-hidden rounded-3xl border border-[#D4AF37]/15 bg-[#0a0a0a] shadow-xl"
+                  >
+                    <div className="border-b border-[#D4AF37]/15 p-6 md:p-8">
+                      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
+                        <div className="min-w-0">
+                          <div className="mb-3 flex flex-wrap items-center gap-3">
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-wider ${getStatusClasses(
+                                status,
+                              )}`}
+                            >
+                              {status}
+                            </span>
+
+                            <span className="text-xs text-white/35">
+                              Request #
+                              {generation.id}
+                            </span>
+
+                            <span className="text-xs text-white/35">
+                              {formatDate(
+                                generation.createdAt,
+                              )}
+                            </span>
+                          </div>
+
+                          <h2 className="text-xl font-medium leading-relaxed text-white md:text-2xl">
+                            {generation.prompt}
+                          </h2>
+
+                          <p className="mt-3 text-sm text-white/50">
+                            {generation.message}
+                          </p>
+                        </div>
+
+                        <div className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={
+                              !generation.midiFilePath ||
+                              downloadingFile ===
+                                `midi-${generation.id}`
+                            }
+                            onClick={() =>
+                              void handleDownload(
+                                generation.midiFilePath,
+                                `soluna-generation-${generation.id}.mid`,
+                                `midi-${generation.id}`,
+                              )
+                            }
+                            className="border-[#D4AF37]/20 bg-white/[0.03] text-white hover:bg-white/10"
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            MIDI
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={
+                              !generation.audioFilePath ||
+                              downloadingFile ===
+                                `audio-${generation.id}`
+                            }
+                            onClick={() =>
+                              void handleDownload(
+                                generation.audioFilePath,
+                                `soluna-generation-${generation.id}.wav`,
+                                `audio-${generation.id}`,
+                              )
+                            }
+                            className="border-[#D4AF37]/20 bg-white/[0.03] text-white hover:bg-white/10"
+                          >
+                            <FileAudio className="mr-2 h-4 w-4" />
+                            Audio
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              handleRegenerateGeneration(
+                                generation,
+                              )
+                            }
+                            className="border-[#D4AF37]/20 bg-white/[0.03] text-white hover:bg-white/10"
+                          >
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Regenerate
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={
+                              deletingGenerationId ===
+                              generation.id
+                            }
+                            onClick={() =>
+                              void handleDeleteGeneration(
+                                generation,
+                              )
+                            }
+                            className="border-red-400/20 bg-red-500/5 text-red-200 hover:bg-red-500/15"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+
+                            {deletingGenerationId ===
+                            generation.id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+                        {[
+                          [
+                            "Mood",
+                            generation.mood,
+                          ],
+                          [
+                            "Genre",
+                            generation.genre,
+                          ],
+                          [
+                            "Tempo",
+                            generation.tempo,
+                          ],
+                          [
+                            "Instrument",
+                            generation.instrument,
+                          ],
+                          [
+                            "Structure",
+                            generation.structure,
+                          ],
+                        ].map(
+                          ([label, value]) => (
+                            <div
+                              key={label}
+                              className="rounded-2xl border border-[#D4AF37]/15 bg-white/[0.02] p-4"
+                            >
+                              <p className="text-[10px] uppercase tracking-wider text-white/35">
+                                {label}
+                              </p>
+
+                              <p className="mt-1 break-words text-sm text-white/75">
+                                {value ||
+                                  "Unavailable"}
+                              </p>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+
+                    {generation.audioFilePath && (
+                      <div className="border-b border-[#D4AF37]/15 px-6 py-5 md:px-8">
+                        <p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/35">
+                          Generated audio
+                        </p>
+
+                        <audio
+                          controls
+                          preload="metadata"
+                          src={buildFileUrl(
+                            generation.audioFilePath,
+                          )}
+                          className="w-full"
+                        >
+                          Your browser does not
+                          support audio playback.
+                        </audio>
+                      </div>
+                    )}
+
+                    <div className="p-6 md:p-8">
+                      <p className="mb-4 text-xs uppercase tracking-[0.15em] text-white/35">
+                        Composition structure
+                      </p>
+
+                      {sections.length === 0 ? (
+                        <p className="text-sm text-white/40">
+                          No structured plan is
+                          available for this
+                          generation.
+                        </p>
+                      ) : (
+                        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                          {sections.map(
+                            (
+                              section,
+                              sectionIndex,
+                            ) => (
+                              <div
+                                key={`${generation.id}-${section.name}-${sectionIndex}`}
+                                className="rounded-2xl border border-[#D4AF37]/15 bg-white/[0.02] p-4"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <strong className="text-sm text-white">
+                                    {section.name ||
+                                      `Section ${
+                                        sectionIndex +
+                                        1
+                                      }`}
+                                  </strong>
+
+                                  <span className="text-xs text-white/35">
+                                    {section.bars ??
+                                      "—"}{" "}
+                                    bars
+                                  </span>
+                                </div>
+
+                                <p className="mt-3 text-xs leading-relaxed text-white/45">
+                                  {section.description ||
+                                    "No description available."}
+                                </p>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              },
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
