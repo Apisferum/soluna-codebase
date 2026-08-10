@@ -9,6 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { PLANNER_API_BASE_URL } from "@/services/api/plannerApi";
+import { joinApiUrl } from "@/services/api/config";
 import {
   getAdminGenerations,
   getGenerationAnalysis,
@@ -283,13 +284,10 @@ function buildFileUrl(
     return filePath;
   }
 
-  const cleanBaseUrl =
-    PLANNER_API_BASE_URL.replace(/\/$/, "");
-
-  const cleanPath =
-    filePath.replace(/^\//, "");
-
-  return `${cleanBaseUrl}/${cleanPath}`;
+  return joinApiUrl(
+    PLANNER_API_BASE_URL,
+    filePath,
+  );
 }
 
 function getStructureSections(
@@ -1338,7 +1336,7 @@ const handleDownload = async (
           ) : !run || !summary ? (
             <EmptyPanel
               title="No training run is available"
-              message="Import a run through POST /admin/research/runs/import. This dashboard does not create mock training values."
+              message="No training metrics have been imported into the unified backend yet. The dashboard does not create mock training values."
             />
           ) : (
             <>
