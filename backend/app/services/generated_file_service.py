@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from app.core.config import settings
@@ -8,6 +8,8 @@ ALLOWED_GENERATED_EXTENSIONS = {
     ".mid",
     ".midi",
     ".wav",
+    ".mp3",
+    ".json",
 }
 
 
@@ -22,10 +24,7 @@ def delete_generated_file(
         }
 
     parsed_url = urlparse(str(file_url))
-
-    filename = Path(
-        unquote(parsed_url.path)
-    ).name
+    filename = Path(unquote(parsed_url.path)).name
 
     if not filename:
         return {
@@ -34,60 +33,53 @@ def delete_generated_file(
             "reason": "Invalid filename",
         }
 
-    extension = Path(
-        filename
-    ).suffix.lower()
-
-    if (
-        extension
-        not in ALLOWED_GENERATED_EXTENSIONS
-    ):
+    extension = Path(filename).suffix.lower()
+    if extension not in ALLOWED_GENERATED_EXTENSIONS:
         return {
             "deleted": False,
             "filename": filename,
-            "reason": (
-                "Unsupported generated-file "
-                "extension"
-            ),
+            "reason": "Unsupported generated-file extension",
         }
 
-    generated_directory = (
-        settings.generated_dir.resolve()
+    candidates: list[Path] = []
+    raw_path = Path(str(file_url)).expanduser()
+
+    if not parsed_url.scheme and raw_path.is_absolute():
+        candidates.append(raw_path)
+
+    candidates.extend(
+        [
+            settings.composer_output_dir / filename,
+            settings.generated_dir / filename,
+        ]
     )
 
-    target_path = (
-        generated_directory / filename
-    ).resolve()
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except OSError:
+            continue
 
-    if target_path.parent != generated_directory:
+        if not resolved.exists():
+            continue
+
+        if not resolved.is_file():
+            return {
+                "deleted": False,
+                "filename": filename,
+                "reason": "Generated path is not a file",
+            }
+
+        resolved.unlink()
         return {
-            "deleted": False,
+            "deleted": True,
             "filename": filename,
-            "reason": "Unsafe file path",
+            "reason": None,
         }
-
-    if not target_path.exists():
-        return {
-            "deleted": False,
-            "filename": filename,
-            "reason": (
-                "File was already missing"
-            ),
-        }
-
-    if not target_path.is_file():
-        return {
-            "deleted": False,
-            "filename": filename,
-            "reason": (
-                "Generated path is not a file"
-            ),
-        }
-
-    target_path.unlink()
 
     return {
-        "deleted": True,
+        "deleted": False,
         "filename": filename,
-        "reason": None,
+        "reason": "File was already missing",
     }
+

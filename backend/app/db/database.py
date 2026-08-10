@@ -201,8 +201,51 @@ def initialize_generation_tables() -> None:
                 critic_trace_json TEXT,
                 midi_file_path TEXT,
                 audio_file_path TEXT,
+                blueprint_file_path TEXT,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
+                FOREIGN KEY(generation_id)
+                    REFERENCES generations(id)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+
+        analysis_columns = {
+            "blueprint_file_path": "TEXT",
+        }
+
+        for column_name, column_definition in analysis_columns.items():
+            if not column_exists(
+                cursor,
+                "generation_analysis",
+                column_name,
+            ):
+                cursor.execute(
+                    f"""
+                    ALTER TABLE generation_analysis
+                    ADD COLUMN {column_name}
+                    {column_definition}
+                    """
+                )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS coherence_scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                generation_id INTEGER NOT NULL,
+                section_name TEXT NOT NULL,
+                chord_adherence REAL,
+                harmonic_stability REAL,
+                rhythmic_regularity REAL,
+                motif_similarity REAL,
+                density_fidelity REAL,
+                transition_quality REAL,
+                emotional_alignment REAL,
+                prompt_alignment REAL,
+                overall_score REAL,
+                created_at INTEGER NOT NULL,
+                UNIQUE(generation_id, section_name),
                 FOREIGN KEY(generation_id)
                     REFERENCES generations(id)
                     ON DELETE CASCADE

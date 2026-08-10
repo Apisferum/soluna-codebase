@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Download,
   FileAudio,
+  FileJson,
   History,
   Loader2,
   Music2,
@@ -26,6 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageMetadata } from "@/hooks/usePageMetadata";
 import { AUTH_API_BASE_URL } from "@/services/api/authApi";
 import { PLANNER_API_BASE_URL } from "@/services/api/plannerApi";
+import { joinApiUrl } from "@/services/api/config";
 
 interface GenerationSection {
   name?: string;
@@ -52,6 +54,7 @@ interface GenerationRecord {
   structuredPlan?: StructuredPlan;
   midiNotes?: StructuredPlan;
   midiFilePath?: string | null;
+  blueprintFilePath?: string | null;
   audioFilePath?: string | null;
   createdAt?: number | string | null;
 }
@@ -71,12 +74,10 @@ function buildFileUrl(filePath: string): string {
     return filePath;
   }
 
-  const cleanBase =
-    PLANNER_API_BASE_URL.replace(/\/+$/, "");
-  const cleanPath =
-    filePath.replace(/^\/+/, "");
-
-  return `${cleanBase}/${cleanPath}`;
+  return joinApiUrl(
+    PLANNER_API_BASE_URL,
+    filePath,
+  );
 }
 
 function formatDate(
@@ -890,7 +891,7 @@ export default function HistoryPage() {
                           </p>
                         </div>
 
-                        <div className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4">
+                        <div className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-5">
                           <Button
                             type="button"
                             variant="outline"
@@ -910,6 +911,27 @@ export default function HistoryPage() {
                           >
                             <Download className="mr-2 h-4 w-4" />
                             MIDI
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={
+                              !generation.blueprintFilePath ||
+                              downloadingFile ===
+                                `blueprint-${generation.id}`
+                            }
+                            onClick={() =>
+                              void handleDownload(
+                                generation.blueprintFilePath,
+                                `soluna-generation-${generation.id}-blueprint.json`,
+                                `blueprint-${generation.id}`,
+                              )
+                            }
+                            className="border-[#D4AF37]/20 bg-white/[0.03] text-white hover:bg-white/10"
+                          >
+                            <FileJson className="mr-2 h-4 w-4" />
+                            Blueprint
                           </Button>
 
                           <Button

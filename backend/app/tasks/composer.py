@@ -5,7 +5,6 @@ import glob
 import traceback
 import torch
 from celery import Celery
-from celery.exceptions import Ignore
 
 from app.core.config import settings
 
@@ -172,4 +171,4 @@ def generate_song_task(self, task_id: str, prompt: str, use_mock_llm: bool):
         return run_generation(task_id, prompt, use_mock_llm, update_state=self.update_state)
     except Exception as e:
         self.update_state(state='FAILURE', meta={'error': str(e)})
-        raise Ignore()
+        raise

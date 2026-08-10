@@ -23,6 +23,7 @@ class GenerationRecordBase(BaseModel):
         default_factory=dict
     )
     midiFilePath: str | None = None
+    blueprintFilePath: str | None = None
     createdAt: int
 
 

@@ -84,6 +84,7 @@ export interface GenerationRecord {
     GenerationCoherenceScore[];
 
   midiFilePath?: string | null;
+  blueprintFilePath?: string | null;
   audioFilePath?: string | null;
 
   createdAt?: number | string | null;
@@ -119,6 +120,7 @@ export interface GenerationHistoryItem {
     | GenerationJsonValue[];
 
   midiFilePath?: string | null;
+  blueprintFilePath?: string | null;
   audioFilePath?: string | null;
 
   createdAt?: number | string | null;

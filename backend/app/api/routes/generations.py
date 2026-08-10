@@ -1,9 +1,8 @@
 from contextlib import closing
 import json
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 import time
-import os
 import httpx
 
 from fastapi import (
@@ -13,8 +12,10 @@ from fastapi import (
     Response,
     status,
 )
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.core.security import (
     get_current_user,
     normalize_email,
@@ -29,10 +30,72 @@ from app.schemas.generation import (
 from app.services.generated_file_service import (
     delete_generated_file,
 )
-from app.tasks.composer import run_generation
+from app.services.composer_service import run_composer_generation
 
 
 router = APIRouter()
+
+
+ALLOWED_GENERATION_EXTENSIONS = {".mid", ".midi", ".wav", ".mp3", ".json"}
+
+
+def generation_asset_url(
+    generation_id: int,
+    asset_type: str,
+    stored_path: str | None,
+) -> str | None:
+    if not stored_path:
+        return None
+
+    return f"/generations/{generation_id}/download/{asset_type}"
+
+
+def parse_json_value(value: str | None, fallback):
+    if not value:
+        return fallback
+
+    try:
+        return json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return fallback
+
+
+def resolve_stored_asset(stored_path: str) -> tuple[Path | None, str | None]:
+    parsed = urlparse(str(stored_path))
+    filename = Path(unquote(parsed.path)).name
+
+    if not filename:
+        return None, None
+
+    extension = Path(filename).suffix.lower()
+    if extension not in ALLOWED_GENERATION_EXTENSIONS:
+        return None, None
+
+    candidates: list[Path] = []
+
+    raw_path = Path(str(stored_path)).expanduser()
+    if not parsed.scheme and raw_path.is_absolute():
+        candidates.append(raw_path)
+
+    for directory in (
+        settings.composer_output_dir,
+        settings.generated_dir,
+    ):
+        candidates.append(directory / filename)
+
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except OSError:
+            continue
+
+        if resolved.is_file():
+            return resolved, None
+
+    if parsed.scheme in {"http", "https"}:
+        return None, str(stored_path)
+
+    return None, None
 
 
 class GenerateRequest(BaseModel):
@@ -64,7 +127,7 @@ def create_generation_unified(
 ):
     """Proxy endpoint for generation requests in the unified backend.
 
-    Generates music assets via the planner service, saves metadata to the DB,
+    Generates music assets through the integrated composer, saves metadata to the DB,
     and returns a structured response matching frontend expectations.
     """
     if not data.prompt.strip():
@@ -76,7 +139,7 @@ def create_generation_unified(
     user_email = normalize_email(current_user["email"])
 
     try:
-        generation_result = run_generation(
+        generation_result = run_composer_generation(
             task_id=str(int(time.time() * 1000)),
             prompt=data.prompt,
             use_mock_llm=False,
@@ -88,6 +151,7 @@ def create_generation_unified(
         critic_trace = []
         coherence_scores = []
         generated_midi_path = generation_result.get("midi_path")
+        generated_blueprint_path = generation_result.get("blueprint_path")
         generated_audio_path = None
         generation_status = "completed"
         message = generation_result.get("message", "AI Plan generated successfully.")
@@ -101,6 +165,7 @@ def create_generation_unified(
         critic_trace = []
         coherence_scores = []
         generated_midi_path = None
+        generated_blueprint_path = None
         generated_audio_path = None
 
     planner_mood = music_spec.get("mood")
@@ -199,10 +264,11 @@ def create_generation_unified(
                 critic_trace_json,
                 midi_file_path,
                 audio_file_path,
+                blueprint_file_path,
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(generation_id) DO UPDATE SET
                 original_prompt = excluded.original_prompt,
                 intent_json = excluded.intent_json,
@@ -211,6 +277,7 @@ def create_generation_unified(
                 critic_trace_json = excluded.critic_trace_json,
                 midi_file_path = excluded.midi_file_path,
                 audio_file_path = excluded.audio_file_path,
+                blueprint_file_path = excluded.blueprint_file_path,
                 updated_at = excluded.updated_at
             """,
             (
@@ -222,6 +289,7 @@ def create_generation_unified(
                 json_dumps_or_none(critic_trace),
                 generated_midi_path,
                 generated_audio_path,
+                generated_blueprint_path,
                 now,
                 now,
             ),
@@ -319,8 +387,15 @@ def create_generation_unified(
             "routing": routing,
             "criticTrace": critic_trace,
             "coherenceScores": coherence_scores,
-            "midiFilePath": generated_midi_path,
-            "audioFilePath": generated_audio_path,
+            "midiFilePath": generation_asset_url(
+                generation_id, "midi", generated_midi_path
+            ),
+            "blueprintFilePath": generation_asset_url(
+                generation_id, "blueprint", generated_blueprint_path
+            ),
+            "audioFilePath": generation_asset_url(
+                generation_id, "audio", generated_audio_path
+            ),
         },
     }
 
@@ -389,6 +464,8 @@ def get_generations(
                 ) AS resolved_midi_file_path,
                 ga.audio_file_path
                     AS audio_file_path,
+                ga.blueprint_file_path
+                    AS blueprint_file_path,
                 g.created_at
             FROM generations AS g
             LEFT JOIN generation_analysis AS ga
@@ -439,12 +516,21 @@ def get_generations(
                 "midiNotes": (
                     structured_plan
                 ),
-                "midiFilePath": row[
-                    "resolved_midi_file_path"
-                ],
-                "audioFilePath": row[
-                    "audio_file_path"
-                ],
+                "midiFilePath": generation_asset_url(
+                    row["id"],
+                    "midi",
+                    row["resolved_midi_file_path"],
+                ),
+                "blueprintFilePath": generation_asset_url(
+                    row["id"],
+                    "blueprint",
+                    row["blueprint_file_path"],
+                ),
+                "audioFilePath": generation_asset_url(
+                    row["id"],
+                    "audio",
+                    row["audio_file_path"],
+                ),
                 "createdAt": row[
                     "created_at"
                 ],
@@ -480,7 +566,9 @@ def delete_user_generation(
                     g.midi_file_path
                 ) AS midi_file_path,
                 ga.audio_file_path
-                    AS audio_file_path
+                    AS audio_file_path,
+                ga.blueprint_file_path
+                    AS blueprint_file_path
             FROM generations AS g
             LEFT JOIN generation_analysis AS ga
                 ON ga.generation_id = g.id
@@ -509,6 +597,10 @@ def delete_user_generation(
             "audio_file_path"
         ]
 
+        blueprint_file_path = generation[
+            "blueprint_file_path"
+        ]
+
         connection.execute(
             """
             DELETE FROM generations
@@ -529,6 +621,7 @@ def delete_user_generation(
         [
             midi_file_path,
             audio_file_path,
+            blueprint_file_path,
         ]
     )
 
@@ -578,9 +671,16 @@ def get_admin_generations(
     with closing(connect_db()) as connection:
         rows = connection.execute(
             """
-            SELECT *
-            FROM generations
-            ORDER BY created_at DESC
+            SELECT
+                g.*,
+                COALESCE(ga.midi_file_path, g.midi_file_path)
+                    AS resolved_midi_file_path,
+                ga.audio_file_path AS resolved_audio_file_path,
+                ga.blueprint_file_path AS resolved_blueprint_file_path
+            FROM generations AS g
+            LEFT JOIN generation_analysis AS ga
+                ON ga.generation_id = g.id
+            ORDER BY g.created_at DESC
             """
         ).fetchall()
 
@@ -627,9 +727,16 @@ def get_admin_generations(
                 "midiNotes": (
                     structured_plan
                 ),
-                "midiFilePath": row[
-                    "midi_file_path"
-                ],
+                "midiFilePath": generation_asset_url(
+                    row["id"],
+                    "midi",
+                    row["resolved_midi_file_path"],
+                ),
+                "blueprintFilePath": generation_asset_url(
+                    row["id"],
+                    "blueprint",
+                    row["resolved_blueprint_file_path"],
+                ),
                 "createdAt": row[
                     "created_at"
                 ],
@@ -639,3 +746,228 @@ def get_admin_generations(
     return AdminGenerationsResponse(
         generations=generations
     )
+
+@router.get("/generations/{generation_id}/download/{asset_type}")
+def download_generation_asset(
+    generation_id: int,
+    asset_type: str,
+    current_user=Depends(get_current_user),
+):
+    if asset_type not in {"midi", "audio", "blueprint"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported generation asset type",
+        )
+
+    with closing(connect_db()) as connection:
+        row = connection.execute(
+            """
+            SELECT
+                g.user_email,
+                COALESCE(ga.midi_file_path, g.midi_file_path)
+                    AS midi_file_path,
+                ga.audio_file_path AS audio_file_path,
+                ga.blueprint_file_path AS blueprint_file_path
+            FROM generations AS g
+            LEFT JOIN generation_analysis AS ga
+                ON ga.generation_id = g.id
+            WHERE g.id = ?
+            """,
+            (generation_id,),
+        ).fetchone()
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Generation not found",
+        )
+
+    requester_email = normalize_email(current_user["email"])
+    owner_email = normalize_email(row["user_email"])
+    requester_role = str(current_user["role"] or "user").strip().lower()
+
+    if requester_email != owner_email and requester_role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this generation",
+        )
+
+    stored_path = {
+        "midi": row["midi_file_path"],
+        "audio": row["audio_file_path"],
+        "blueprint": row["blueprint_file_path"],
+    }[asset_type]
+
+    if not stored_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Generated {asset_type} file is unavailable",
+        )
+
+    local_path, remote_url = resolve_stored_asset(str(stored_path))
+
+    if local_path is not None:
+        suffix = local_path.suffix.lower()
+        media_type = {
+            ".mid": "audio/midi",
+            ".midi": "audio/midi",
+            ".wav": "audio/wav",
+            ".mp3": "audio/mpeg",
+            ".json": "application/json",
+        }.get(suffix, "application/octet-stream")
+
+        return FileResponse(
+            str(local_path),
+            media_type=media_type,
+            filename=local_path.name,
+        )
+
+    if remote_url:
+        try:
+            remote_response = httpx.get(
+                remote_url,
+                follow_redirects=True,
+                timeout=max(30.0, settings.composer_http_timeout_seconds * 4),
+            )
+            remote_response.raise_for_status()
+        except httpx.HTTPError as error:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Could not retrieve the generated file from the remote composer",
+            ) from error
+
+        filename = Path(unquote(urlparse(remote_url).path)).name or (
+            f"generation-{generation_id}.{
+                'mid' if asset_type == 'midi' else 'json' if asset_type == 'blueprint' else 'wav'
+            }"
+        )
+        suffix = Path(filename).suffix.lower()
+        media_type = {
+            ".mid": "audio/midi",
+            ".midi": "audio/midi",
+            ".wav": "audio/wav",
+            ".mp3": "audio/mpeg",
+            ".json": "application/json",
+        }.get(suffix, remote_response.headers.get("content-type", "application/octet-stream"))
+
+        return Response(
+            content=remote_response.content,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Generated file no longer exists on the server",
+    )
+
+
+@router.get("/admin/generations/{generation_id}/analysis")
+def get_admin_generation_analysis(
+    generation_id: int,
+    current_admin=Depends(require_admin),
+):
+    del current_admin
+
+    with closing(connect_db()) as connection:
+        analysis = connection.execute(
+            """
+            SELECT
+                ga.generation_id,
+                ga.original_prompt,
+                ga.intent_json,
+                ga.structure_plan_json,
+                ga.routing_json,
+                ga.critic_trace_json,
+                COALESCE(ga.midi_file_path, g.midi_file_path)
+                    AS midi_file_path,
+                ga.audio_file_path,
+                ga.blueprint_file_path
+            FROM generation_analysis AS ga
+            JOIN generations AS g
+                ON g.id = ga.generation_id
+            WHERE ga.generation_id = ?
+            """,
+            (generation_id,),
+        ).fetchone()
+
+        if analysis is None:
+            generation = connection.execute(
+                """
+                SELECT id, prompt, midi_file_path
+                FROM generations
+                WHERE id = ?
+                """,
+                (generation_id,),
+            ).fetchone()
+
+            if generation is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Generation not found",
+                )
+
+            return {
+                "generationId": generation["id"],
+                "originalPrompt": generation["prompt"],
+                "intent": {},
+                "structurePlan": {},
+                "routing": {},
+                "criticTrace": [],
+                "midiFilePath": generation_asset_url(
+                    generation["id"], "midi", generation["midi_file_path"]
+                ),
+                "audioFilePath": None,
+                "blueprintFilePath": None,
+                "coherenceScores": [],
+            }
+
+        score_rows = connection.execute(
+            """
+            SELECT *
+            FROM coherence_scores
+            WHERE generation_id = ?
+            ORDER BY id ASC
+            """,
+            (generation_id,),
+        ).fetchall()
+
+    coherence_scores = [
+        {
+            "sectionName": row["section_name"],
+            "chordAdherence": row["chord_adherence"],
+            "harmonicStability": row["harmonic_stability"],
+            "rhythmicRegularity": row["rhythmic_regularity"],
+            "motifSimilarity": row["motif_similarity"],
+            "densityFidelity": row["density_fidelity"],
+            "transitionQuality": row["transition_quality"],
+            "emotionalAlignment": row["emotional_alignment"],
+            "promptAlignment": row["prompt_alignment"],
+            "overallScore": row["overall_score"],
+        }
+        for row in score_rows
+    ]
+
+    return {
+        "generationId": analysis["generation_id"],
+        "originalPrompt": analysis["original_prompt"],
+        "intent": parse_json_value(analysis["intent_json"], {}),
+        "structurePlan": parse_json_value(
+            analysis["structure_plan_json"], {}
+        ),
+        "routing": parse_json_value(analysis["routing_json"], {}),
+        "criticTrace": parse_json_value(analysis["critic_trace_json"], []),
+        "midiFilePath": generation_asset_url(
+            analysis["generation_id"], "midi", analysis["midi_file_path"]
+        ),
+        "audioFilePath": generation_asset_url(
+            analysis["generation_id"], "audio", analysis["audio_file_path"]
+        ),
+        "blueprintFilePath": generation_asset_url(
+            analysis["generation_id"], "blueprint", analysis["blueprint_file_path"]
+        ),
+        "coherenceScores": coherence_scores,
+    }
+

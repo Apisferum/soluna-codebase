@@ -17,6 +17,7 @@ import {
 import {
   Download,
   FileAudio,
+  FileJson,
   History as HistoryIcon,
   Loader2,
   Music2,
@@ -35,6 +36,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePageMetadata } from "@/hooks/usePageMetadata";
 import { AUTH_API_BASE_URL } from "@/services/api/authApi";
 import { PLANNER_API_BASE_URL } from "@/services/api/plannerApi";
+import { joinApiUrl } from "@/services/api/config";
 import {
   createGeneration,
   GenerationApiError,
@@ -125,13 +127,10 @@ function buildGenerationFileUrl(
     return filePath;
   }
 
-  const cleanBaseUrl =
-    PLANNER_API_BASE_URL.replace(/\/+$/, "");
-
-  const cleanPath =
-    filePath.replace(/^\/+/, "");
-
-  return `${cleanBaseUrl}/${cleanPath}`;
+  return joinApiUrl(
+    PLANNER_API_BASE_URL,
+    filePath,
+  );
 }
 
 function isExternalFileUrl(
@@ -677,13 +676,10 @@ export default function GenerationPage() {
   const formatTime = (
     seconds: number,
   ): string => {
-    const minutes =
-      Math.floor(seconds / 60);
-      const cleanBaseUrl =
-        (PLANNER_API_BASE_URL || AUTH_API_BASE_URL).replace(/\/+$/, "");
-      Math.floor(seconds % 60)
-        .toString()
-        .padStart(2, "0");
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, "0");
 
     return `${minutes}:${remainingSeconds}`;
   };
@@ -846,6 +842,9 @@ export default function GenerationPage() {
 
   const generatedMidiPath =
     generationResult?.midiFilePath;
+
+  const generatedBlueprintPath =
+    generationResult?.blueprintFilePath;
 
   const hasGeneratedAudio =
     Boolean(generatedAudioPath);
@@ -1285,27 +1284,43 @@ export default function GenerationPage() {
                               </div>
                             </div>
 
-                            {generatedMidiPath ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void handleDownload(
-                                    generatedMidiPath,
-                                    `soluna-${generationResult.id}.mid`,
-                                  )
-                                }
-                                className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#A87912] via-[#D4AF37] to-[#F1D36A] px-4 text-xs font-bold text-black shadow-md shadow-[#D4AF37]/10 transition-all hover:brightness-110"
-                              >
-                                <Download className="h-4 w-4" />
-                                Download MIDI
-                              </button>
-                            ) : (
-                              <p className="text-xs leading-5 text-muted-foreground">
-                                No MIDI file path
-                                was returned by the
-                                planner.
-                              </p>
-                            )}
+                            <div className="space-y-2">
+                              {generatedMidiPath ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void handleDownload(
+                                      generatedMidiPath,
+                                      `soluna-${generationResult.id}.mid`,
+                                    )
+                                  }
+                                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#A87912] via-[#D4AF37] to-[#F1D36A] px-4 text-xs font-bold text-black shadow-md shadow-[#D4AF37]/10 transition-all hover:brightness-110"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Download MIDI
+                                </button>
+                              ) : (
+                                <p className="text-xs leading-5 text-muted-foreground">
+                                  No MIDI file path was returned by the planner.
+                                </p>
+                              )}
+
+                              {generatedBlueprintPath ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void handleDownload(
+                                      generatedBlueprintPath,
+                                      `soluna-${generationResult.id}-blueprint.json`,
+                                    )
+                                  }
+                                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#D4AF37]/35 bg-[#D4AF37]/10 px-4 text-xs font-semibold text-[#F4D06F] transition-all hover:bg-[#D4AF37]/20"
+                                >
+                                  <FileJson className="h-4 w-4" />
+                                  Download Blueprint JSON
+                                </button>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
 
