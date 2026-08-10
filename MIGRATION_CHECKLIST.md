@@ -69,11 +69,11 @@ npm run dev:all
 Expected local services:
 
 ```text
-Frontend     http://localhost:8080
-Auth API     http://localhost:8000
-Planner API  http://localhost:8001
-Audio API    http://localhost:7860
+Frontend          http://localhost:8080
+Unified backend   http://localhost:8000
 ```
+
+The Vite frontend proxies `/api` requests to the unified backend. Do not start separate planner or audio API ports.
 
 ## 7. Verify before replacing the old project
 

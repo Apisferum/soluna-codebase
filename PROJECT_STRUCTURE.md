@@ -56,9 +56,8 @@ npm run dev:all
 
 Services:
 - Frontend: `http://localhost:8080`
-- Auth API: `http://localhost:8000`
-- Planner API: `http://localhost:8001`
-- Audio API: `http://localhost:7860`
+- Unified FastAPI backend: `http://localhost:8000`
+- All backend HTTP routes are served below `/api`.
 
 ## Existing database migration
 
