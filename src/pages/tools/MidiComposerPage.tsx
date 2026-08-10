@@ -1,19 +1,18 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Upload, Music, Music2, Download, Play, Pause, 
-  Wand2, CheckCircle, RefreshCw, Sliders, FileAudio, 
-  Clock, Loader2 
+import {
+  Upload, Music2, Download, Wand2, RefreshCw,
+  Sliders, FileAudio, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { usePageMetadata } from "@/hooks/usePageMetadata";
-import { SEOContent, Breadcrumb } from "@/components/common/SEOContent";
+import { Breadcrumb } from "@/components/common/SEOContent";
 import RelatedTools from "@/components/common/RelatedTools";
 import { cn } from "@/lib/utils";
+import { API_BASE_URL, joinApiUrl } from "@/services/api/config";
 
 // Audio configurations matching user resources
 const GENRE_TRACKS: Record<string, { title: string; audioUrl: string; duration: string }> = {
@@ -37,6 +36,27 @@ const GENRE_TRACKS: Record<string, { title: string; audioUrl: string; duration: 
     audioUrl: "/musics/Remacalm.mp3",
     duration: "3:58"
   }
+};
+
+interface MidiContinuationResponse {
+  status: string;
+  message: string;
+  source_filename: string;
+  source_summary?: {
+    tempo_bpm?: number;
+    tracks?: number;
+    duration_beats?: number;
+    note_events?: number;
+    lowest_note?: string;
+    highest_note?: string;
+  };
+  midi_download_url: string;
+  blueprint_download_url?: string | null;
+}
+
+const buildComposerAssetUrl = (path: string): string => {
+  if (/^https?:\/\//i.test(path)) return path;
+  return joinApiUrl(API_BASE_URL, path);
 };
 
 export default function MidiComposerPage() {
@@ -64,6 +84,7 @@ export default function MidiComposerPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [genStep, setGenStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [continuationResult, setContinuationResult] = useState<MidiContinuationResponse | null>(null);
 
   // Playback audio states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -122,36 +143,78 @@ export default function MidiComposerPage() {
     }
     setSelectedFile(uploadedFile);
     setIsCompleted(false);
+    setContinuationResult(null);
     toast({
       title: "MIDI Uploaded Successfully",
       description: `${uploadedFile.name} is ready for AI generation.`
     });
   };
 
-  // Generate Simulation
-  const startGeneration = () => {
-    if (!selectedFile) return;
+  // Generate real MIDI continuation through the unified composer backend.
+  const startGeneration = async () => {
+    if (!selectedFile || isGenerating) return;
+
     setIsGenerating(true);
     setGenStep(0);
     setIsCompleted(false);
+    setContinuationResult(null);
 
-    const interval = setInterval(() => {
-      setGenStep((prev) => {
-        if (prev >= generationSteps.length - 1) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setIsGenerating(false);
-            setIsCompleted(true);
-            toast({
-              title: "Arrangement Complete!",
-              description: "Your MIDI file has been successfully arranged and rendered."
-            });
-          }, 800);
-          return prev;
-        }
-        return prev + 1;
+    const progressTimer = window.setInterval(() => {
+      setGenStep((current) => Math.min(current + 1, generationSteps.length - 2));
+    }, 1800);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("genre", genre);
+      formData.append("complexity", String(complexity));
+      formData.append("tempo_match", String(tempoMatch));
+      formData.append("tempo_bpm", String(tempoBpm));
+
+      const response = await fetch(`${API_BASE_URL}/composer/continue-midi`, {
+        method: "POST",
+        body: formData,
       });
-    }, 1500);
+
+      let result: MidiContinuationResponse | { detail?: string };
+      try {
+        result = await response.json();
+      } catch {
+        result = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          "detail" in result && result.detail
+            ? result.detail
+            : `MIDI continuation failed with status ${response.status}.`,
+        );
+      }
+
+      const completedResult = result as MidiContinuationResponse;
+      if (!completedResult.midi_download_url) {
+        throw new Error("The backend completed without returning a MIDI file.");
+      }
+
+      setGenStep(generationSteps.length - 1);
+      setContinuationResult(completedResult);
+      setIsCompleted(true);
+      toast({
+        title: "MIDI Continuation Complete",
+        description: completedResult.message || "Your uploaded MIDI has been continued successfully.",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not continue this MIDI file.";
+      console.error("MIDI continuation error:", error);
+      toast({
+        title: "MIDI Continuation Failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      window.clearInterval(progressTimer);
+      setIsGenerating(false);
+    }
   };
 
   // Audio Playback logic
@@ -216,6 +279,7 @@ export default function MidiComposerPage() {
     setCurrentTime(0);
     setSelectedFile(null);
     setIsCompleted(false);
+    setContinuationResult(null);
   };
 
   // Cleanup audio context on unmount
@@ -472,6 +536,11 @@ export default function MidiComposerPage() {
                     <div className="flex-1">
                       <p className="text-sm text-muted-foreground uppercase tracking-widest font-bold mb-1">Generated Output for</p>
                       <h3 className="text-xl font-medium text-white">{selectedFile?.name}</h3>
+                      {continuationResult?.source_summary ? (
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          Detected {continuationResult.source_summary.tracks ?? "?"} track(s) • {continuationResult.source_summary.tempo_bpm ?? "?"} BPM • {continuationResult.source_summary.note_events ?? "?"} note events • range {continuationResult.source_summary.lowest_note ?? "?"}–{continuationResult.source_summary.highest_note ?? "?"}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
@@ -492,8 +561,8 @@ export default function MidiComposerPage() {
                             <FileAudio className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <Label className="text-sm font-bold text-white">Pristine MP3 Audio</Label>
-                            <p className="text-xs text-muted-foreground">High-quality rendered audio track</p>
+                            <Label className="text-sm font-bold text-white">Style Reference Preview</Label>
+                            <p className="text-xs text-muted-foreground">Reference audio for the selected target style; not the generated MIDI render</p>
                           </div>
                         </div>
                         
@@ -511,14 +580,9 @@ export default function MidiComposerPage() {
                           </div>
                         </div>
                         
-                        <a
-                          href={activeTrack.audioUrl}
-                          download
-                          className="w-full h-10 px-4 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all"
-                        >
-                          <Download className="w-4 h-4 text-white" />
-                          Download MP3 File
-                        </a>
+                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                          The continuation endpoint currently returns the combined MIDI and its planning blueprint. Audio rendering can be added separately when a renderer is available.
+                        </p>
                       </div>
 
                       {/* Completed MIDI */}
@@ -538,14 +602,29 @@ export default function MidiComposerPage() {
                           </p>
                         </div>
                         
-                        <a
-                          href="/samples/completed_orchestration.mid"
-                          download
-                          className="w-full h-10 px-4 rounded-lg bg-white hover:bg-white/90 text-black text-xs font-bold flex items-center justify-center gap-2 transition-all"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download MIDI File
-                        </a>
+                        <div className="space-y-2">
+                          {continuationResult?.midi_download_url ? (
+                            <a
+                              href={buildComposerAssetUrl(continuationResult.midi_download_url)}
+                              download
+                              className="w-full h-10 px-4 rounded-lg bg-white hover:bg-white/90 text-black text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download Continued MIDI
+                            </a>
+                          ) : null}
+
+                          {continuationResult?.blueprint_download_url ? (
+                            <a
+                              href={buildComposerAssetUrl(continuationResult.blueprint_download_url)}
+                              download
+                              className="w-full h-10 px-4 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download Continuation Blueprint
+                            </a>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
 
