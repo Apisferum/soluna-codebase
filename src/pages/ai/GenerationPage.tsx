@@ -677,13 +677,10 @@ export default function GenerationPage() {
   const formatTime = (
     seconds: number,
   ): string => {
-    const minutes =
-      Math.floor(seconds / 60);
-      const cleanBaseUrl =
-        (PLANNER_API_BASE_URL || AUTH_API_BASE_URL).replace(/\/+$/, "");
-      Math.floor(seconds % 60)
-        .toString()
-        .padStart(2, "0");
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, "0");
 
     return `${minutes}:${remainingSeconds}`;
   };
