@@ -90,7 +90,7 @@ export async function getCurrentAdmin(
 
   try {
     response = await fetch(
-      `${AUTH_API_BASE_URL}/auth/admin/me`,
+      `${AUTH_API_BASE_URL}/admin/me`,
       {
         method: "GET",
         headers: {

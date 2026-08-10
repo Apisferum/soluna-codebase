@@ -30,7 +30,7 @@ def test_health():
             return False
     except requests.exceptions.ConnectionError:
         print(f"❌ Cannot connect to backend at {BACKEND_URL}")
-        print("   Make sure you run: npm run dev:audio")
+        print("   Make sure you run: npm run dev:backend")
         return False
 
 def test_chord_analysis():

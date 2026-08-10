@@ -513,7 +513,7 @@ const VocalSplitterPage = () => {
               </div> */}
               {/* <div className="mt-4 px-4 py-2 rounded-lg bg-white/[0.02] border border-white/5 max-w-2xl mx-auto">
                 <p className="text-xs text-muted-foreground">
-                  <strong className="text-white">Note:</strong> This feature requires the backend server to be running. For local testing, start the backend with <code className="px-1 py-0.5 rounded bg-white/5 text-white">npm run dev:audio</code>
+                  <strong className="text-white">Note:</strong> This feature requires the backend server to be running. For local testing, start the backend with <code className="px-1 py-0.5 rounded bg-white/5 text-white">npm run dev:backend</code>
                 </p>
               </div> */}
             </div>

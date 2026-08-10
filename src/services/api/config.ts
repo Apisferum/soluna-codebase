@@ -8,7 +8,6 @@ const envApiUrl = import.meta.env.VITE_AUTH_API_URL || import.meta.env.VITE_API_
 const envChordsUrl = import.meta.env.VITE_CHORDS_API_URL;
 const envStemsUrl = import.meta.env.VITE_STEMS_API_URL;
 const envWsUrl = import.meta.env.VITE_BACKEND_WS_URL;
-const envPlannerUrl = import.meta.env.VITE_PLANNER_API_URL;
 
 // Helper to standardize a base URL ending with '/api'
 // If no URL is provided, returns "/api" as a relative path to support local Vite proxy.
@@ -43,8 +42,8 @@ export const WS_BASE_URL = (() => {
   return `${wsProtocol}//${apiHost}`;
 })();
 
-// 4. Centralized Planner API base URL
-export const PLANNER_API_BASE_URL = (envPlannerUrl || "http://127.0.0.1:8001").replace(/\/+$/, "");
+// 4. Backward-compatible planner alias. Generation now uses the unified /api backend.
+export const PLANNER_API_BASE_URL = API_BASE_URL;
 
 /**
  * Resolves a relative path robustly against a base API URL configuration.

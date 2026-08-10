@@ -221,7 +221,7 @@ export async function getCurrentUser(
   let response: Response;
 
   try {
-    response = await fetch(`${AUTH_API_BASE_URL}/auth/me`, {
+    response = await fetch(`${AUTH_API_BASE_URL}/users/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,

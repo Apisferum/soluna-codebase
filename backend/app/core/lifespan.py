@@ -27,6 +27,10 @@ async def lifespan(
         parents=True,
         exist_ok=True,
     )
+    settings.composer_output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     initialize_auth_tables()
     initialize_generation_tables()

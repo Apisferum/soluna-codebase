@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     celery_task_time_limit: int = 1800
     celery_task_soft_time_limit: int = 1700
     moonbeam_output_dir: str | None = None
+    composer_execution_mode: str = "celery"
+    composer_remote_api_url: str | None = None
+    composer_poll_interval_seconds: float = 2.0
+    composer_http_timeout_seconds: float = 30.0
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",
