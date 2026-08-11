@@ -14,6 +14,11 @@ import multiprocessing
 num_cores = min(multiprocessing.cpu_count(), 4)
 torch.set_num_threads(num_cores)
 
+
+def get_torch_device():
+    """Return the preferred torch device, preferring CUDA when available."""
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Global model cache to avoid reloading from disk on every request
 _DEMUCS_WRAPPER = None
 _DEMUCS_6STEM_WRAPPER = None
@@ -24,9 +29,10 @@ STEM_TYPES = ["vocals", "drums", "bass", "guitar", "piano", "other"]
 class DemucsSeparator:
     def __init__(self, model_name="htdemucs"):
         from demucs.pretrained import get_model
-        print(f"[Demucs] Loading model {model_name} into memory...")
+        self.device = get_torch_device()
+        print(f"[Demucs] Loading model {model_name} into memory on {self.device}...")
         self.model = get_model(model_name)
-        self.model.cpu()
+        self.model.to(self.device)
         self.model.eval()
         self.samplerate = self.model.samplerate
 
@@ -52,9 +58,9 @@ class DemucsSeparator:
         ref = wav.mean(0)
         wav = (wav - ref.mean()) / (ref.std() + 1e-8)
         
-        print(f"[Demucs] Running inference on {wav.shape[1]/sr:.1f}s of audio (CPU)...")
-        with torch.no_grad():
-            # Use overlap=0.0 and shifts=0 for maximum speed on CPU
+        print(f"[Demucs] Running inference on {wav.shape[1]/sr:.1f}s of audio on {self.device}...")
+        wav = wav.to(self.device)
+        with torch.inference_mode():
             sources = apply_model(self.model, wav[None], shifts=0, overlap=0.0, progress=True)[0]
         
         sources = sources * ref.std() + ref.mean()
@@ -74,9 +80,10 @@ class DemucsSeparator6Stem:
     """
     def __init__(self, model_name="htdemucs_6s"):
         from demucs.pretrained import get_model
-        print(f"[Demucs 6-Stem] Loading model {model_name} into memory...")
+        self.device = get_torch_device()
+        print(f"[Demucs 6-Stem] Loading model {model_name} into memory on {self.device}...")
         self.model = get_model(model_name)
-        self.model.cpu()
+        self.model.to(self.device)
         self.model.eval()
         self.samplerate = self.model.samplerate
 
@@ -101,9 +108,9 @@ class DemucsSeparator6Stem:
         ref = wav.mean(0)
         wav = (wav - ref.mean()) / (ref.std() + 1e-8)
         
-        print(f"[Demucs 6-Stem] Running inference on {wav.shape[1]/sr:.1f}s of audio (CPU)... This may take 5-10 minutes.")
-        with torch.no_grad():
-            # Use overlap=0.0 and shifts=0 for maximum speed on CPU
+        print(f"[Demucs 6-Stem] Running inference on {wav.shape[1]/sr:.1f}s of audio on {self.device}... This may take 5-10 minutes.")
+        wav = wav.to(self.device)
+        with torch.inference_mode():
             sources = apply_model(self.model, wav[None], shifts=0, overlap=0.0, progress=True)[0]
         
         sources = sources * ref.std() + ref.mean()
