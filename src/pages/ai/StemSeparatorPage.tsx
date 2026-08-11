@@ -309,7 +309,7 @@ const StemSeparatorPage = () => {
         // Notify user immediately that processing has started
         toast({
             title: "Processing started",
-            description: "Uploading your file. 6-stem separation takes 5-10 minutes on CPU.",
+            description: "Uploading your file for 6-stem separation .",
         });
 
         try {
@@ -536,11 +536,11 @@ const StemSeparatorPage = () => {
                             {/* <div className="flex justify-center pt-2">
                                 <SupportedInstrumentsDropdown label="Target Reference Instrument" className="w-64" />
                             </div> */}
-                            <div className="mt-4 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 max-w-2xl mx-auto">
+                            {/* <div className="mt-4 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 max-w-2xl mx-auto">
                                 <p className="text-xs text-amber-200/80">
                                     <strong className="text-amber-300">⚠️ Note:</strong> 6-stem separation takes 5-10 minutes on CPU. Please be patient.
                                 </p>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 

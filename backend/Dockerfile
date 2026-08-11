@@ -26,8 +26,8 @@ ENV PATH="/home/user/.local/bin:$PATH"
 COPY --chown=user requirements.txt requirements.txt
 COPY --chown=user requirements/ requirements/
 
-# Install CPU-only Torch first (Much smaller download, prevents build timeout)
-RUN pip install --no-cache-dir torch==2.2.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cpu
+# Install CUDA-enabled PyTorch matching the common NVIDIA CUDA 12.1 runtime
+RUN pip install --no-cache-dir torch==2.2.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
 
 # Install remaining dependencies
 RUN pip install --no-cache-dir -r requirements.txt
