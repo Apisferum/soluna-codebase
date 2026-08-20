@@ -1,5 +1,8 @@
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 import json
 import glob
 import traceback
@@ -162,14 +165,41 @@ def _autodiscover_checkpoints():
         if found:
             resolved[env_key] = found
         else:
-            # 3. Fallback to default hardcoded paths
-            fallback_map = {
-                "BASE_MODEL_PATH": "/home/aashishbishow/ProjectX/Moonbeam Pretrained Weights/moonbeam_839M.pt",
-                "LORA_DIR": "/home/aashishbishow/ProjectX/moonbeam_chunk_20260716_140713",
-                "CONFIG_PATH": "/home/aashishbishow/ProjectX/moonbeam-codebase/src/llama_recipes/configs/model_config_multi_task.json",
-                "MASTER_DICT_PATH": "/home/aashishbishow/ProjectX/Moonbeam Multi-Task Data/ComMU/indexed_tokens_dict.json"
-            }
-            resolved[env_key] = fallback_map[env_key]
+            # Resolve relative to the repository parent directory (workspace root)
+            workspace_root = os.path.dirname(codebase_dir) if codebase_dir else os.path.abspath(os.path.join(current_dir, "..", "..", "..", ".."))
+            
+            candidates = []
+            if env_key == "BASE_MODEL_PATH":
+                candidates = [
+                    os.path.join(workspace_root, "Moonbeam Pretrained Weights", "moonbeam_839M.pt"),
+                    os.path.join(workspace_root, "moonbeam_checkpoint", "moonbeam_839M.pt"),
+                    "/home/aashishbishow/ProjectX/Moonbeam Pretrained Weights/moonbeam_839M.pt"
+                ]
+            elif env_key == "LORA_DIR":
+                candidates = [
+                    os.path.join(workspace_root, "moonbeam_chunk_20260716_140713"),
+                    os.path.join(workspace_root, "multi_task_lora"),
+                    "/home/aashishbishow/ProjectX/moonbeam_chunk_20260716_140713"
+                ]
+            elif env_key == "CONFIG_PATH":
+                candidates = [
+                    os.path.join(workspace_root, "moonbeam-codebase", "src", "llama_recipes", "configs", "model_config_multi_task.json"),
+                    os.path.join(workspace_root, "src", "llama_recipes", "configs", "model_config_multi_task.json"),
+                    "/home/aashishbishow/ProjectX/moonbeam-codebase/src/llama_recipes/configs/model_config_multi_task.json"
+                ]
+            elif env_key == "MASTER_DICT_PATH":
+                candidates = [
+                    os.path.join(workspace_root, "Moonbeam Multi-Task Data", "ComMU", "indexed_tokens_dict.json"),
+                    os.path.join(workspace_root, "processed", "ComMU", "indexed_tokens_dict.json"),
+                    "/home/aashishbishow/ProjectX/Moonbeam Multi-Task Data/ComMU/indexed_tokens_dict.json"
+                ]
+                
+            local_guess = candidates[-1]
+            for c in candidates:
+                if os.path.exists(c):
+                    local_guess = c
+                    break
+            resolved[env_key] = local_guess
             
     return resolved
 
