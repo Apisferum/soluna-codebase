@@ -76,20 +76,27 @@ def run_generation(task_id: str, prompt: str, use_mock_llm: bool, update_state=N
     global harmony_router, composer
 
     try:
-        if harmony_router is None:
-            _update_task_state(update_state, "LOADING_MODELS", "Booting 839M Model & Rust TIES Core into VRAM...")
-
-            paths = _autodiscover_checkpoints()
+        if harmony_router is None or getattr(harmony_router, "use_mock", False) != use_mock_llm:
             from engine.HarmonyRouter import HarmonyRouter
             from engine.agentic_composer import AgenticComposer
 
-            harmony_router = HarmonyRouter(
-                base_model_path=paths["BASE_MODEL_PATH"],
-                lora_checkpoint_dir=paths["LORA_DIR"],
-                model_config_path=paths["CONFIG_PATH"],
-                master_dict_path=paths["MASTER_DICT_PATH"],
-                device=_resolve_device(),
-            )
+            if use_mock_llm:
+                _update_task_state(update_state, "LOADING_MODELS", "Booting Mock HarmonyRouter (Fast Mode)...")
+                harmony_router = HarmonyRouter(
+                    base_model_path="", lora_checkpoint_dir="",
+                    model_config_path="", master_dict_path="",
+                    device=_resolve_device(), use_mock=True
+                )
+            else:
+                _update_task_state(update_state, "LOADING_MODELS", "Booting 839M Model & Rust TIES Core into VRAM...")
+                paths = _autodiscover_checkpoints()
+                harmony_router = HarmonyRouter(
+                    base_model_path=paths["BASE_MODEL_PATH"],
+                    lora_checkpoint_dir=paths["LORA_DIR"],
+                    model_config_path=paths["CONFIG_PATH"],
+                    master_dict_path=paths["MASTER_DICT_PATH"],
+                    device=_resolve_device(), use_mock=False
+                )
             composer = AgenticComposer(harmonyrouter=harmony_router, acceptance_threshold=0.75)
             os.makedirs(settings.composer_output_dir, exist_ok=True)
 
