@@ -186,6 +186,7 @@ def _autodiscover_checkpoints():
                 candidates = [
                     os.path.join(workspace_root, "moonbeam_chunk_20260716_140713"),
                     os.path.join(workspace_root, "moonbeam_chunk_20260817_155517"),
+                    os.path.join(workspace_root, "moonbeam_chunk_20260816_170434"),
                     os.path.join(workspace_root, "multi_task_lora"),
                     "/home/aashishbishow/ProjectX/moonbeam_chunk_20260716_140713"
                 ]
